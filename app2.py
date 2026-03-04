@@ -41,3 +41,5 @@ folium.Marker(
 
 # ✅ Display the map
 st_folium(m, width=700)
+
+st.sidebar.title("Your Favorites")
