@@ -9,24 +9,25 @@ import uuid
 import time
 
 json_file = Path("users.json")
+with st.sidebar:
+    st.title("Budget-Friendly Map Login")
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
 
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if 'user' not in st.session_state:
+    if 'user' not in st.session_state:
     st.session_state['user'] = None
 
-if 'page' not in st.session_state:
-    st.session_state['page'] = 'login'
+    if 'page' not in st.session_state:
+        st.session_state['page'] = 'login'
 
-if 'role' not in st.session_state:
-    st.session_state['role'] = None
+    if 'role' not in st.session_state:
+        st.session_state['role'] = None
 
-if json_file.exists():
-    with open(json_file, "r") as f:
-        users = json.load(f)
-else:
-    users = [
+    if json_file.exists():
+        with open(json_file, "r") as f:
+            users = json.load(f)
+    else:
+        users = [
         {
             "id": "1",
             "email": "emdesmo@udel.edu",
@@ -37,6 +38,7 @@ else:
     ]
     with open(json_file, "w") as f:
         json.dump(users, f, indent=4)
+
 
 st.title("Budget-Friendly Map Login")
 
@@ -105,6 +107,8 @@ elif page == "Login":
                 else:
                     st.error("Invalid email or password.")
 
+
+
 geolocator = Nominatim(user_agent="fun_map")
 
 st.title("Budget-friendly College Life Map!")
@@ -158,7 +162,7 @@ if st.session_state['role'] == "Other":
     st.sidebar.title("Area Resources")
     st.sidebar.write("Explore fun and affordable activities for all ages!")
 
-    
+
 if st.button('Log Out'):
     with st.spinner("Logging out..."):
         time.sleep(5)
