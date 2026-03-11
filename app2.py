@@ -9,13 +9,14 @@ import uuid
 import time
 
 json_file = Path("users.json")
+
 with st.sidebar:
     st.title("Budget-Friendly Map Login")
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
 
     if 'user' not in st.session_state:
-    st.session_state['user'] = None
+        st.session_state['user'] = None
 
     if 'page' not in st.session_state:
         st.session_state['page'] = 'login'
@@ -38,7 +39,6 @@ with st.sidebar:
     ]
     with open(json_file, "w") as f:
         json.dump(users, f, indent=4)
-
 
 st.title("Budget-Friendly Map Login")
 
