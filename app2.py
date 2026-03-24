@@ -11,8 +11,8 @@ import time
 st.set_page_config(page_title="Hangout Map", layout="centered")
 
 json_file = Path("users.json")
+json_location = Path("location.json")
 
-st.title("Budget-Friendly Map")
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
@@ -41,24 +41,73 @@ else:
     with open(json_file, "w") as f:
         json.dump(users, f, indent=4)
 
-st.markdown(f"Budget-Friendly Map Login")
+if json_location.exists():
+    with open(json_location, "r") as f:
+        saved_locations = json.load(f)
+else:
+    saved_locations = []
+    with open(json_location, "w") as f:
+        json.dump(saved_locations, f, indent=4)
 
-page = st.sidebar.radio("Choose a page", ["Register", "Login"])
+st.markdown("<h1 style='text-align: center;'>Budget-Friendly Map</h1>", unsafe_allow_html=True)
 
-if page == "Register":
-    st.subheader("Create an Account!")
+# top buttons before login
+if not st.session_state["logged_in"]:
+    left_space, center_area, right_space = st.columns([1, 2, 1])
 
-    with st.container():
-        email = st.text_input("Email Address")
-        user_name = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        role = st.selectbox("Role", ["College Student", "High-School Student", "Other"])
+    with center_area:
+        st.write("")
+        button_col1, button_col2 = st.columns(2)
+
+        with button_col1:
+            if st.button("Login", use_container_width=True):
+                st.session_state["page"] = "login"
+                st.rerun()
+
+        with button_col2:
+            if st.button("Register", use_container_width=True):
+                st.session_state["page"] = "register"
+                st.rerun()
+
+# sidebar only after login
+if st.session_state["logged_in"]:
+    st.sidebar.title("Navigation")
+
+    if st.sidebar.button("Map"):
+        st.session_state["page"] = "map"
+        st.rerun()
+
+    if st.sidebar.button("Logout"):
+        st.session_state["logged_in"] = False
+        st.session_state["user"] = None
+        st.session_state["role"] = None
+        st.session_state["page"] = "login"
+        st.rerun()
+
+# register page
+if st.session_state["page"] == "register" and not st.session_state["logged_in"]:
+    left_space, center_area, right_space = st.columns([1, 2, 1])
+
+    with center_area:
+        st.header("Create an Account")
+
+        email = st.text_input("Email Address", key="register_email")
+        user_name = st.text_input("Username", key="register_username")
+        password = st.text_input("Password", type="password", key="register_password")
+        role = st.selectbox(
+            "Role",
+            ["College Student", "High-School Student", "Other"],
+            key="register_role"
+        )
 
         if st.button("Create Account"):
             if not email or not user_name or not password:
                 st.error("Please fill out all fields.")
             else:
-                email_exists = any(user["email"].strip().lower() == email.strip().lower() for user in users)
+                email_exists = any(
+                    user["email"].strip().lower() == email.strip().lower()
+                    for user in users
+                )
 
                 if email_exists:
                     st.error("An account with this email already exists.")
@@ -81,13 +130,18 @@ if page == "Register":
                             json.dump(users, f, indent=4)
 
                     st.success("Account created successfully!")
+                    st.session_state["page"] = "login"
+                    st.rerun()
 
-elif page == "Login":
-    st.subheader("Login")
+# login page
+elif st.session_state["page"] == "login" and not st.session_state["logged_in"]:
+    left_space, center_area, right_space = st.columns([1, 2, 1])
 
-    with st.container():
-        login_email = st.text_input("Email")
-        login_password = st.text_input("Password", type="password")
+    with center_area:
+        st.header("Login")
+
+        login_email = st.text_input("Email", key="login_email")
+        login_password = st.text_input("Password", type="password", key="login_password")
 
         if st.button("Log In"):
             with st.spinner("Verifying credentials..."):
@@ -100,13 +154,66 @@ elif page == "Login":
                         break
 
                 if matched_user:
-                    st.session_state['logged_in'] = True
-                    st.session_state['user'] = matched_user
-                    st.session_state['role'] = matched_user['role']
+                    st.session_state["logged_in"] = True
+                    st.session_state["user"] = matched_user
+                    st.session_state["role"] = matched_user["role"]
+                    st.session_state["page"] = "map"
                     st.success(f"Welcome back, {matched_user['username']}!")
                     st.rerun()
                 else:
                     st.error("Invalid email or password.")
 
+# map page
+elif st.session_state["page"] == "map" and st.session_state["logged_in"]:
+    st.header("Hangout Map")
 
+    geolocator = Nominatim(user_agent="my_app")
 
+    place = st.text_input("Enter a location", key="map_place")
+
+    if place:
+        geo_location = geolocator.geocode(place)
+        marker_name = st.text_input("Enter a saved marker name", key="map_marker_name")
+
+        if geo_location:
+            m = folium.Map(location=[geo_location.latitude, geo_location.longitude], zoom_start=13)
+
+            folium.Marker(
+                [geo_location.latitude, geo_location.longitude],
+                popup=place,
+                tooltip="Search Location"
+            ).add_to(m)
+
+            for loc in saved_locations:
+                if "lat" in loc and "lon" in loc:
+                    folium.Marker(
+                    [loc["lat"], loc["lon"]],
+                    popup=loc["name"],
+                    tooltip=loc["name"]
+                    ).add_to(m)
+
+            st_folium(m, width=700, height=500)
+
+            if st.button("Save Location"):
+                new_location = {
+                    "name": marker_name if marker_name else place,
+                    "lat": geo_location.latitude,
+                    "lon": geo_location.longitude
+                }
+
+                saved_locations.append(new_location)
+
+                with open(json_location, "w") as f:
+                    json.dump(saved_locations, f, indent=4)
+
+                st.success("Location saved!")
+                st.rerun()
+
+        else:
+            st.error("Location not found")
+
+    if saved_locations:
+        st.subheader("Saved Locations")
+        st.dataframe(saved_locations)
+    else:
+        st.write("No saved locations yet.")
