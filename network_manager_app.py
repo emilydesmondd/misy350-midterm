@@ -216,6 +216,7 @@ elif st.session_state["role"] == "Student":
                 json.dump(advisors, f, indent=4)
 
             st.success("Connection is updated!")
+            #st.balloons()
             time.sleep(2)
             st.rerun()
 
