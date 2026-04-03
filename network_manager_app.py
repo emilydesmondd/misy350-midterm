@@ -140,6 +140,7 @@ elif st.session_state["role"] == "Student":
             st.text_input("Email", key="connection_email")
             st.text_input("Company", key="connection_company")
             st.text_input("Position", key="connection_position")
+
         if st.button("Save Connection", type="primary", use_container_width=True):
             new_advisor = {
                 "full_name": st.session_state["connection_name"],
@@ -176,29 +177,24 @@ elif st.session_state["role"] == "Student":
                 break
 
         if advisor_tochange:
-            edit_name = st.text_input(
-            "Full Name",
+            edit_name = st.text_input("Full Name",
             value=advisor_tochange["full_name"],
             key=f"edit_name_{advisor_tochange['full_name']}"
         )
-        edit_email = st.text_input(
-            "Email",
+        edit_email = st.text_input("Email",
             value=advisor_tochange["email"],
             key=f"edit_email_{advisor_tochange['full_name']}"
         )
-        edit_company = st.text_input(
-            "Company",
+        edit_company = st.text_input("Company",
             value=advisor_tochange["company"],
             key=f"edit_company_{advisor_tochange['full_name']}"
         )
-        edit_position = st.text_input(
-            "Position",
+        edit_position = st.text_input("Position",
             value=advisor_tochange["position"],
             key=f"edit_position_{advisor_tochange['full_name']}"
         )
 
-        update_btn = st.button(
-            "Update Connection",
+        update_btn = st.button("Update Connection",
             key=f"btn_update_{advisor_tochange['full_name']}",
             use_container_width=True,
             type="primary"
