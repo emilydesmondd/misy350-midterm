@@ -1,2 +1,5 @@
 .env
+
 users.json
+advisors.json
+connection_requests.json
