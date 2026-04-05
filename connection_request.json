@@ -9,6 +9,7 @@
         "student_name": "Emily Desmond",
         "student_school": "University of Delaware",
         "student_major": "Management Information Systems",
+        "student_grad_yr": "2026",
         "notes": "I would love to hear about your experience in the tech industry.",
         "advisor_note": ""
     },
@@ -22,6 +23,7 @@
         "student_name": "John Desmond",
         "student_school": "DelTech college",
         "student_major": "Engineering ",
+        "student_grad_yr": "2029",
         "notes": "Hello! I would love to hear about your time at Tech Solutions.",
         "advisor_note": ""
     }

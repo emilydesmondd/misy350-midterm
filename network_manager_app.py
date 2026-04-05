@@ -1,9 +1,12 @@
+import email
+
 import streamlit as st
 import json
 from pathlib import Path
 from datetime import datetime
 import uuid
 import time
+import re
 
 st.set_page_config(page_title='Network Manager', page_icon=':globe_with_meridians:', layout='centered')
 
@@ -53,6 +56,8 @@ connection_requests = [
     }
 ]
 
+profile = []
+
 json_users = Path("users.json")
 if json_users.exists() and json_users.stat().st_size > 0:
     with open(json_users, "r") as f:
@@ -68,6 +73,10 @@ if json_connections.exists() and json_connections.stat().st_size > 0:
     with json_connections.open("r", encoding= "utf-8") as f:
         connection_requests = json.load(f)
 
+json_profile = Path("profile.json")
+if json_profile.exists() and json_profile.stat().st_size > 0:
+    with json_profile.open("r", encoding= "utf-8") as f:
+        profile = json.load(f)
 
 #============ Advisor Home Page ============
 if st.session_state["role"] == "Advisor":
@@ -234,6 +243,8 @@ elif st.session_state["role"] == "Student":
         st.header(f'Welcome, {st.session_state["user"]["full_name"]}!')
         st.subheader("Your Network")
         st.divider()
+
+        pending = []
     
         for request in connection_requests:
 
@@ -241,22 +252,22 @@ elif st.session_state["role"] == "Student":
 
                 pending = [
                     {"Status": request["status"],
-                    "Student Name": request["student_name"],
-                    "Advisor": request.get("advisor_name", "")}]
-
-        col1, col2 = st.columns([3, 2])
-        with col1:
-            st.markdown("# Pending Requests")
-            st.dataframe(pending, use_container_width=True)
-        with col2:
-            with st.container(border=True):
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.markdown(f"hi")
-                with c2:
-                    st.markdown('hello')
-
-
+                    "Advisor": request.get("advisor_name", ""),
+                    "Company": request.get("advisor_company", ""),}]
+        for prof in profile:
+            if prof["profile_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
+                col1, col2 = st.columns([3, 2])
+                with col1:
+                    st.markdown("## Pending Requests")
+                    st.dataframe(pending, use_container_width=True)
+                with col2:
+                    with st.container(border=True, horizontal=False):
+                        st.markdown("### Your Details")
+                        st.markdown(f"{request['student_name']}")
+                        st.markdown(f"{request['student_email']}")
+                        st.markdown(f"{request['student_major']}")
+                        st.markdown(f"{request['student_school']}")
+                        st.markdown(f"{request['student_grad_yr']}")
 
 
 #============ Student Dashboard ============
@@ -363,6 +374,7 @@ elif st.session_state["role"] == "Student":
 
 #================Sign Up Screen =================
 elif st.session_state["page"] == "signup":
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2: 
         st.header("Network Manager :globe_with_meridians:")
@@ -401,9 +413,42 @@ elif st.session_state["page"] == "signup":
                             time.sleep(2)
                         st.success(f"Account created! Welcome, {full_name_signup}!")
 
-                        st.session_state["page"] = "student_home_page" if role_signup == "Student" else "advisor_home_page"
+                        st.session_state["page"] = "profile_setup"
                         st.rerun()
 
+                    if st.session_state["page"] == "profile_setup":
+
+                        st.markdown("### Profile Setup")
+
+                        st.text_input("Student Name", placeholder=f"{full_name_signup}", key="profile_full_name")
+                        st.text_input("Student Email", placeholder=f"{email_signup}", key="profile_email")
+
+                        st.text_input("School", key="profile_school")
+                        st.text_input("Major", key="profile_major")
+                        st.date_input("Graduation Year", key="profile_grad_year", format="YYYY")
+
+                        if st.button("Complete Profile", type="primary", use_container_width=True):
+                            st.session_state["user"]["school"] = st.session_state.get("profile_school", "")
+                            st.session_state["user"]["major"] = st.session_state.get("profile_major", "")
+                            st.session_state["user"]["grad_year"] = st.session_state.get("profile_grad_year", "")
+
+                        for i, user in enumerate(users):
+                            if user["email"] == st.session_state["user"]["email"]:
+                                users[i] = st.session_state["user"]
+                                break
+
+                            with open(json_profile, "w") as f:
+                                json.dump(profile, f, indent=4)
+
+                                st.success("Profile setup complete!")
+                                time.sleep(2)
+
+                            if st.session_state["role"] == "Student":
+                                st.session_state["page"] = "student_home_page"
+                            else:
+                                st.session_state["page"] = "advisor_home_page"
+
+                            st.rerun()
 
                 if st.button("Have an Account? Log In", type="secondary", use_container_width=True):
                     st.session_state["page"] = "login"
@@ -459,7 +504,6 @@ else:
                     st.session_state["page"] = "signup"
                     st.rerun()
 
-
 #================Page Navigation in Sidebar =================
 if st.session_state["logged_in"]:
     with st.sidebar:
@@ -476,6 +520,10 @@ if st.session_state["logged_in"]:
 
             if st.button("AI Email Helper", key="ai_btn"):
                 st.session_state["page"] = "AI_email_helper"
+                st.rerun()
+
+            if st.button("Profile", key="profile_btn"):
+                st.session_state["page"] = "profile"
                 st.rerun()
 
             if st.button("Log Out", key="logout_btn"):
@@ -495,6 +543,10 @@ if st.session_state["logged_in"]:
 
             if st.button("Dashboard", key="dash_btn_2"):
                 st.session_state["page"] = "advisor_dashboard"
+                st.rerun()
+
+            if st.button("Profile", key="profile_btn"):
+                st.session_state["page"] = "profile"
                 st.rerun()
 
             if st.button("Log Out", key="logout_btn_2"):
