@@ -66,7 +66,6 @@ if json_connections.exists() and json_connections.stat().st_size > 0:
         connection_requests = json.load(f)
 
 
-
 #============ Advisor Home Page ============
 if st.session_state["role"] == "Advisor":
 
@@ -78,115 +77,142 @@ if st.session_state["role"] == "Advisor":
     elif st.session_state["page"] == "advisor_dashboard":
         st.markdown('### Network!')
 
-        tab1, tab2, tab3 = st.tabs(['Students', 'Events', 'option'])
+        view_connections = []
+
+
+        tab1, tab2, tab3 = st.tabs(['Students', 'Events', 'Option'])
+
         with tab1:
             st.header("Student Connection Requests")
             st.markdown("This is where advisors can review student connection requests.")
-            col1, col2, col3 = st.columns([3, 2, 2])
+
+            view_connections = [
+                request for request in connection_requests
+                if request.get("advisor_email", "").strip().lower()
+                == st.session_state["user"]["email"].strip().lower()
+            ]
+
+            col1, col2, col3 = st.columns([3, 1.5, 1.5])
 
             with col1:
                 st.markdown("## Submitted Requests")
 
             with col2:
                 with st.container(border=True):
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown("Count")
-                    with c2:
-                        st.markdown(f"## {len(connection_requests)}")
+                    st.markdown("Count")
+                    st.markdown(f"### {len(view_connections)}")
 
             with col3:
                 with st.container(border=True):
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown(f"Pending")
-                    with c2:
-                        pending = 0
-                        for request in connection_requests:
-                            if request["status"].strip().lower() == "pending":
-                                pending += 1
-                        st.markdown(f"## {pending}")
+                    pending_count = sum(
+                        1 for request in view_connections
+                        if request.get("status", "").strip().lower() == "pending"
+                    )
+                    st.markdown("Pending")
+                    st.markdown(f"### {pending_count}")
+
+            st.divider()
 
             with st.container(border=True):
-                col1, col2 = st.columns([4, 2])
+                filter_col1, filter_col2 = st.columns([4, 2])
 
-                with col1:
-                    search_item = st.text_input("Search by Student Email", key="search_txt_by_email")
+                with filter_col1:
+                    search_item = st.text_input(
+                        "Search by Student Email",
+                        key="search_txt_by_email"
+                    )
 
-                with col2:
-                    status_options = ["All", "Pending", "Approved", "Rejected"]
-                    selected_status = st.selectbox("Status", status_options, key="selected_status_filter")
+                with filter_col2:
+                    selected_status = st.selectbox(
+                        "Status",
+                        ["All", "Pending", "Approved", "Rejected"],
+                        key="selected_status_filter"
+                    )
 
-            filtered_requests = connection_requests
+            filtered_requests = view_connections.copy()
 
             if search_item:
                 filtered_requests = [
                     request for request in filtered_requests
-                    if search_item.lower() in request["student_email"].lower()
+                    if search_item.lower() in request.get("student_email", "").lower()
                 ]
+
             if selected_status != "All":
                 filtered_requests = [
                     request for request in filtered_requests
-                    if request["status"].strip().lower() == selected_status.lower()
+                    if request.get("status", "").strip().lower() == selected_status.lower()
                 ]
-            col1, col2 = st.columns([4, 2])
+
+            display_requests = [
+                {
+                    "Status": request.get("status", ""),
+                    "Student Name": request.get("student_name", ""),
+                    "Student Email": request.get("student_email", ""),
+                    "School": request.get("student_school", ""),
+                    "Major": request.get("student_major", "")
+                }
+                for request in filtered_requests
+            ]
+
+            table_col, details_col = st.columns([4, 2])
             selected_request = None
 
-            with col1:
+            with table_col:
                 event = st.dataframe(
-                filtered_requests,
-                on_select="rerun",
-                selection_mode="single-row",
-                use_container_width=True
+                    display_requests,
+                    on_select="rerun",
+                    selection_mode="single-row",
+                    use_container_width=True,
+                    key="advisor_requests_table"
                 )
 
                 if event.selection.rows:
                     selected_index = event.selection.rows[0]
                     selected_request = filtered_requests[selected_index]
 
-            with col2:
+            with details_col:
                 with st.container(border=True):
                     st.markdown("### Request Details")
 
-                    if selected_request:
-                        with st.container(border=True):
-                            st.markdown(f"**Status:** {selected_request['status']}")
-                            st.markdown(f"**Student Name:** {selected_request['student_name']}")
-                            st.markdown(f"**Student Email:** {selected_request['student_email']}")
-                            st.markdown(f"**School:** {selected_request['student_school']}")
-                            st.markdown(f"**Major:** {selected_request['student_major']}")
-                            st.markdown(f"**Notes:** {selected_request['notes']}")
+                    if selected_request is not None:
+                        st.markdown(f"**Status:** {selected_request.get('status', '')}")
+                        st.markdown(f"**Student Name:** {selected_request.get('student_name', '')}")
+                        st.markdown(f"**Student Email:** {selected_request.get('student_email', '')}")
+                        st.markdown(f"**School:** {selected_request.get('student_school', '')}")
+                        st.markdown(f"**Major:** {selected_request.get('student_major', '')}")
+                        st.markdown(f"**Notes:** {selected_request.get('notes', '')}")
 
-                        if selected_request["status"].strip().lower() == "pending":
+                        if selected_request.get("status", "").strip().lower() == "pending":
+                            st.divider()
+
                             advisor_note = st.text_area(
-                            "Advisor Note (optional)",
-                            key="advisor_note_textbox",
-                            height=100
-                        )
+                                "Advisor Note (optional)",
+                                key=f"advisor_note_{selected_request['request_id']}",
+                                height=100
+                            )
 
                             decision = st.radio(
-                            "Decision",
-                            ["Approved", "Rejected"],
-                            key="decision_radio"
-                        )
+                                "Decision",
+                                ["Approved", "Rejected"],
+                                key=f"decision_{selected_request['request_id']}"
+                            )
 
                             if st.button(
-                            "Record Decision",
-                            key="record_decision_btn",
-                            type="primary",
-                            use_container_width=True
-                        ):
+                                "Record Decision",
+                                key=f"record_decision_{selected_request['request_id']}",
+                                type="primary",
+                                use_container_width=True
+                            ):
                                 for request in connection_requests:
                                     if request["request_id"] == selected_request["request_id"]:
                                         request["status"] = decision
                                         request["advisor_note"] = advisor_note
                                         break
 
-                            with open(json_connections, "w") as f:
-                                json.dump(connection_requests, f, indent=4)
+                                with open(json_connections, "w", encoding="utf-8") as f:
+                                    json.dump(connection_requests, f, indent=4)
 
                                 st.success("Decision recorded.")
-                                time.sleep(2)
                                 st.rerun()
                     else:
                         st.info("Select a request to view details.")
@@ -202,9 +228,30 @@ elif st.session_state["role"] == "Student":
 
     if st.session_state["page"] == "student_home_page":
 
-        st.markdown(f'### Welcome, {st.session_state["user"]["full_name"]}!')
+        st.header(f'Welcome, {st.session_state["user"]["full_name"]}!')
+        st.subheader("Your Network")
+        st.divider()
+    
+        for request in connection_requests:
 
-        #profile page view ur major, school, name, email, etc. and then button to go to dashboard where they can see their network and add connections
+            if request["status"].strip().lower() == "pending" and request["student_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
+
+                pending = [
+                    {"Status": request["status"],
+                    "Student Name": request["student_name"],
+                    "Advisor": request.get("advisor_name", "")}]
+
+        col1, col2 = st.columns([3, 2])
+        with col1:
+            st.markdown("# Pending Requests")
+            st.dataframe(pending, use_container_width=True)
+        with col2:
+            with st.container(border=True):
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown(f"hi")
+                with c2:
+                    st.markdown('hello')
 
 
 
