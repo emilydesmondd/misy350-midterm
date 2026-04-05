@@ -1,5 +1,3 @@
-import email
-
 import streamlit as st
 import json
 from pathlib import Path
@@ -250,7 +248,7 @@ elif st.session_state["role"] == "Student":
 
             if request["status"].strip().lower() == "pending" and request["student_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
 
-                pending = [
+                pending.append = [
                     {"Status": request["status"],
                     "Advisor": request.get("advisor_name", ""),
                     "Company": request.get("advisor_company", ""),}]
@@ -262,13 +260,11 @@ elif st.session_state["role"] == "Student":
                     st.dataframe(pending, use_container_width=True)
                 with col2:
                     with st.container(border=True, horizontal=False):
-                        st.markdown("### Your Details")
-                        st.markdown(f"{request['student_name']}")
-                        st.markdown(f"{request['student_email']}")
-                        st.markdown(f"{request['student_major']}")
-                        st.markdown(f"{request['student_school']}")
-                        st.markdown(f"{request['student_grad_yr']}")
-
+                        st.markdown(f"**Name:** {prof.get('profile_full_name','')}")
+                        st.markdown(f"**Email:** {prof.get('profile_email','')}")
+                        st.markdown(f"**Major:** {prof.get('profile_major','')}")
+                        st.markdown(f"**School:** {prof.get('profile_school','')}")
+                        st.markdown(f"**Grad Year:** {prof.get('profile_grad_year','')}")
 
 #============ Student Dashboard ============
     elif st.session_state["page"] == 'student_dashboard':
@@ -416,47 +412,13 @@ elif st.session_state["page"] == "signup":
                         st.session_state["page"] = "profile_setup"
                         st.rerun()
 
-                    if st.session_state["page"] == "profile_setup":
-
-                        st.markdown("### Profile Setup")
-
-                        st.text_input("Student Name", placeholder=f"{full_name_signup}", key="profile_full_name")
-                        st.text_input("Student Email", placeholder=f"{email_signup}", key="profile_email")
-
-                        st.text_input("School", key="profile_school")
-                        st.text_input("Major", key="profile_major")
-                        st.date_input("Graduation Year", key="profile_grad_year", format="YYYY")
-
-                        if st.button("Complete Profile", type="primary", use_container_width=True):
-                            st.session_state["user"]["school"] = st.session_state.get("profile_school", "")
-                            st.session_state["user"]["major"] = st.session_state.get("profile_major", "")
-                            st.session_state["user"]["grad_year"] = st.session_state.get("profile_grad_year", "")
-
-                        for i, user in enumerate(users):
-                            if user["email"] == st.session_state["user"]["email"]:
-                                users[i] = st.session_state["user"]
-                                break
-
-                            with open(json_profile, "w") as f:
-                                json.dump(profile, f, indent=4)
-
-                                st.success("Profile setup complete!")
-                                time.sleep(2)
-
-                            if st.session_state["role"] == "Student":
-                                st.session_state["page"] = "student_home_page"
-                            else:
-                                st.session_state["page"] = "advisor_home_page"
-
-                            st.rerun()
-
                 if st.button("Have an Account? Log In", type="secondary", use_container_width=True):
                     st.session_state["page"] = "login"
                     st.rerun()
 
 
 #================Log In Screen =================
-else:
+elif st.session_state["page"] == "login":
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2: st.header("Network Manager :globe_with_meridians:")
 
@@ -503,6 +465,54 @@ else:
                 if st.button("Don't have an account? Sign Up", type="secondary", use_container_width=True):
                     st.session_state["page"] = "signup"
                     st.rerun()
+
+elif st.session_state["page"] == "profile_setup":
+    st.markdown("### Profile Setup")
+
+    profile_full_name = st.text_input(
+        "Student Name",
+        value=st.session_state["user"]["full_name"],
+        key="profile_full_name"
+    )
+    profile_email = st.text_input(
+        "Student Email",
+        value=st.session_state["user"]["email"],
+        key="profile_email"
+    )
+    profile_school = st.text_input("School", key="profile_school")
+    profile_major = st.text_input("Major", key="profile_major")
+    profile_grad_year = st.text_input("Graduation Year", key="profile_grad_year")
+
+    if st.button("Complete Profile", type="primary", use_container_width=True):
+        new_profile = {
+            "profile_full_name": profile_full_name,
+            "profile_email": profile_email,
+            "profile_school": profile_school,
+            "profile_major": profile_major,
+            "profile_grad_year": profile_grad_year
+        }
+
+        found_profile = False
+        for i, prof in enumerate(profile):
+            if prof.get("profile_email", "").strip().lower() == profile_email.strip().lower():
+                profile[i] = new_profile
+                found_profile = True
+                break
+
+        if not found_profile:
+            profile.append(new_profile)
+
+        with open(json_profile, "w") as f:
+            json.dump(profile, f, indent=4)
+
+        st.success("Profile setup complete!")
+
+        if st.session_state["role"] == "Student":
+            st.session_state["page"] = "student_home_page"
+        else:
+            st.session_state["page"] = "advisor_home_page"
+
+        st.rerun()
 
 #================Page Navigation in Sidebar =================
 if st.session_state["logged_in"]:
