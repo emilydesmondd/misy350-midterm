@@ -5,5 +5,12 @@
         "profile_school": "University of Delaware",
         "profile_major": "Management Information Systems",
         "profile_grad_year": "2027"
+    },
+    {
+        "profile_full_name": "Domenic Oronzio",
+        "profile_email": "dom@gmail.com",
+        "profile_school": "Goldey Beacom College",
+        "profile_major": "Marketing ",
+        "profile_grad_year": "2027"
     }
 ]

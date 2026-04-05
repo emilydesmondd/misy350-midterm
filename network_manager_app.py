@@ -132,7 +132,7 @@ if st.session_state["page"] == "signup":
 
 
 # ================= Profile Setup =================
-elif st.session_state["page"] == "profile_setup":
+elif st.session_state["page"] == "profile_setup" and st.session_state['Student']:
     if st.session_state["user"] is None:
         st.warning("Please log in first.")
         st.session_state["page"] = "login"
@@ -140,20 +140,22 @@ elif st.session_state["page"] == "profile_setup":
 
     st.markdown("### Profile Setup")
 
+
     with st.container(border=True):
-        profile_full_name = st.text_input(
+            profile_full_name = st.text_input(
             "Student Name",
             value=st.session_state["user"]["full_name"],
             key="profile_full_name"
         )
-        profile_email = st.text_input(
+            profile_email = st.text_input(
             "Student Email",
             value=st.session_state["user"]["email"],
             key="profile_email"
         )
-        profile_school = st.text_input("School", value=st.session_state["user"].get("school", ""), key="profile_school")
-        profile_major = st.text_input("Major", value=st.session_state["user"].get("major", ""), key="profile_major")
-        profile_grad_year = st.text_input("Graduation Year", value=st.session_state["user"].get("grad_year", ""), key="profile_grad_year")
+            profile_school = st.text_input("School", value=st.session_state["user"].get("school", ""), key="profile_school")
+            profile_major = st.text_input("Major", value=st.session_state["user"].get("major", ""), key="profile_major")
+            profile_grad_year = st.text_input("Graduation Year", value=st.session_state["user"].get("grad_year", ""), key="profile_grad_year")
+
 
     if st.button("Complete Profile", type="primary", use_container_width=True):
         new_profile = {
@@ -238,7 +240,7 @@ elif st.session_state["page"] == "login":
                 st.rerun()
 
 
-# ================= Advisor Pages =================
+# ================= Advisor =================
 elif st.session_state["role"] == "Advisor":
 
     if st.session_state["page"] == "advisor_home_page":
@@ -393,7 +395,7 @@ elif st.session_state["role"] == "Advisor":
             st.markdown("Under Construction")
 
 
-# ================= Student Pages =================
+# ================= Student =================
 elif st.session_state["role"] == "Student":
 
     if st.session_state["page"] == "student_home_page":
@@ -497,13 +499,23 @@ elif st.session_state["role"] == "Student":
             advisor_tochange = None
             selected_index = None
 
-            event = st.dataframe(
-                advisors,
-                on_select="rerun",
-                selection_mode="single-row",
-                use_container_width=True,
-                key="manage_connections_table"
-            )
+            user_email = st.session_state["user"]["email"]
+
+            connected_advisor_emails = [
+            request.get("advisor_email")
+            for request in connection_requests
+            if request.get("student_email", "").strip().lower() == user_email.strip().lower()
+            and request.get("status", "").strip().lower() == "approved"]
+
+            filtered_advisors = [
+                advisor for advisor in advisors
+                if advisor.get("email") in connected_advisor_emails]
+
+            event = st.dataframe(filtered_advisors,
+            on_select="rerun",
+            selection_mode="single-row",
+            use_container_width=True,
+            key="manage_connections_table")
 
             if event.selection.rows:
                 selected_index = event.selection.rows[0]
@@ -515,12 +527,20 @@ elif st.session_state["role"] == "Student":
                 edit_company = st.text_input("Company", value=advisor_tochange.get("company", ""), key="edit_company")
                 edit_position = st.text_input("Position", value=advisor_tochange.get("position", ""), key="edit_position")
 
-                update_btn = st.button(
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    update_btn = st.button(
                     "Update Connection",
                     key=f"btn_update_{selected_index}",
                     use_container_width=True,
-                    type="primary"
-                )
+                    type="primary")
+
+                with col2:
+                    delete_btn = st.button(
+                    "Delete Connection",
+                    key=f"btn_delete_{selected_index}",
+                    use_container_width=True)
 
                 if update_btn:
                     advisor_tochange["full_name"] = edit_name
@@ -531,10 +551,22 @@ elif st.session_state["role"] == "Student":
                     with json_advisors.open("w", encoding="utf-8") as f:
                         json.dump(advisors, f, indent=4)
 
-                    st.success("Connection is updated!")
-                    st.rerun()
+                st.success("Connection is updated!")
+                st.rerun()
+
+                if delete_btn:
+                    advisors.remove(advisor_tochange)
+
+                with json_advisors.open("w", encoding="utf-8") as f:
+                    json.dump(advisors, f, indent=4)
+                st.success("Connection deleted!")
+                st.rerun()
+
             else:
-                st.info("Select a connection to edit.")
+                if not filtered_advisors:
+                    st.info("No approved connections yet.")
+                else:
+                    st.info("Select a connection to edit.")
 
     elif st.session_state["page"] == "AI_email_helper":
         st.markdown("### AI Email Helper")
