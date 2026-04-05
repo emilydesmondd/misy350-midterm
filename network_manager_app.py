@@ -42,11 +42,14 @@ connection_requests = [
     {
         "request_id": "011101",
         "status": "Pending",
+        "advisor_email": "joedoe@udel.edu",
+        "advisor_name": "Joe Doe",
         "student_email": "emdesmo@udel.edu",
         "student_name": "Emily Desmond",
         "student_school": "University of Delaware",
         "student_major": "Management Information Systems",
         "notes": "I would love to hear about your experience in the tech industry and any advice you have for someone starting out.",
+        "advisor_note": ""
     }
 ]
 
@@ -378,24 +381,28 @@ elif st.session_state["page"] == "signup":
                 role_signup = st.selectbox("Role", ["Student", "Advisor"], key="role_signup")
         
                 if st.button("Create Account", type="primary",use_container_width=True):
-                    st.session_state["logged_in"]= True
-                    st.session_state["user"] = {
+                    if not full_name_signup or not email_signup or not password_signup:
+                        st.warning("Please fill out all fields.")
+                    else:
+                        st.session_state["logged_in"]= True
+                    
+                        st.session_state["user"] = {
                         "id": str(uuid.uuid4()),
                         "email": email_signup,
                         "full_name": full_name_signup,
                         "password": password_signup,
                         "role": role_signup 
                     }
-                    st.session_state["role"] = role_signup
-                    users.append(st.session_state["user"])  
-                    with open(json_users, "w") as f:
-                        json.dump(users, f, indent=4)
-                    with st.spinner("Creating account..."):
-                        time.sleep(2)
-                    st.success(f"Account created! Welcome, {full_name_signup}!")
+                        st.session_state["role"] = role_signup
+                        users.append(st.session_state["user"])  
+                        with open(json_users, "w") as f:
+                            json.dump(users, f, indent=4)
+                        with st.spinner("Creating account..."):
+                            time.sleep(2)
+                        st.success(f"Account created! Welcome, {full_name_signup}!")
 
-                    st.session_state["page"] = "student_home_page" if role_signup == "Student" else "advisor_home_page"
-                    st.rerun()
+                        st.session_state["page"] = "student_home_page" if role_signup == "Student" else "advisor_home_page"
+                        st.rerun()
 
 
                 if st.button("Have an Account? Log In", type="secondary", use_container_width=True):
