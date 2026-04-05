@@ -45,6 +45,7 @@ connection_requests = [
         "status": "Pending",
         "advisor_email": "joedoe@udel.edu",
         "advisor_name": "Joe Doe",
+        "advisor_company": "Tech Solutions",
         "student_email": "emdesmo@udel.edu",
         "student_name": "Emily Desmond",
         "student_school": "University of Delaware",
@@ -132,7 +133,7 @@ if st.session_state["page"] == "signup":
 
 
 # ================= Profile Setup =================
-elif st.session_state["page"] == "profile_setup" and st.session_state['Student']:
+elif st.session_state["page"] == "profile_setup":
     if st.session_state["user"] is None:
         st.warning("Please log in first.")
         st.session_state["page"] = "login"
@@ -471,11 +472,18 @@ elif st.session_state["role"] == "Student":
                     advisor_name = selected_advisor.split(" - ")[0]
                     advisor_company = selected_advisor.split(" - ")[1]
 
+                    advisor_email = ""
+                    for advisor in advisors:
+                        if advisor["full_name"] == advisor_name and advisor["company"] == advisor_company:
+                            advisor_email = advisor["email"]
+                            break
+
                     new_request = {
                         "request_id": str(uuid.uuid4()),
                         "status": "Pending",
                         "advisor_name": advisor_name,
                         "advisor_company": advisor_company,
+                        "advisor_email": advisor_email,
                         "student_email": student_email,
                         "student_name": student_name,
                         "student_school": student_school,
@@ -502,24 +510,28 @@ elif st.session_state["role"] == "Student":
             user_email = st.session_state["user"]["email"]
 
             connected_advisor_emails = [
-            request.get("advisor_email")
-            for request in connection_requests
-            if request.get("student_email", "").strip().lower() == user_email.strip().lower()
-            and request.get("status", "").strip().lower() == "approved"]
+                request.get("advisor_email")
+                for request in connection_requests
+                if request.get("student_email", "").strip().lower() == user_email.strip().lower()
+                and request.get("status", "").strip().lower() == "approved"
+            ]
 
             filtered_advisors = [
                 advisor for advisor in advisors
-                if advisor.get("email") in connected_advisor_emails]
+                if advisor.get("email") in connected_advisor_emails
+            ]
 
-            event = st.dataframe(filtered_advisors,
-            on_select="rerun",
-            selection_mode="single-row",
-            use_container_width=True,
-            key="manage_connections_table")
+            event = st.dataframe(
+                filtered_advisors,
+                on_select="rerun",
+                selection_mode="single-row",
+                use_container_width=True,
+                key="manage_connections_table"
+            )
 
             if event.selection.rows:
                 selected_index = event.selection.rows[0]
-                advisor_tochange = advisors[selected_index]
+                advisor_tochange = filtered_advisors[selected_index]
 
             if advisor_tochange is not None:
                 edit_name = st.text_input("Full Name", value=advisor_tochange.get("full_name", ""), key="edit_full_name")
@@ -531,16 +543,18 @@ elif st.session_state["role"] == "Student":
 
                 with col1:
                     update_btn = st.button(
-                    "Update Connection",
-                    key=f"btn_update_{selected_index}",
-                    use_container_width=True,
-                    type="primary")
+                        "Update Connection",
+                        key=f"btn_update_{selected_index}",
+                        use_container_width=True,
+                        type="primary"
+                    )
 
                 with col2:
                     delete_btn = st.button(
-                    "Delete Connection",
-                    key=f"btn_delete_{selected_index}",
-                    use_container_width=True)
+                        "Delete Connection",
+                        key=f"btn_delete_{selected_index}",
+                        use_container_width=True
+                    )
 
                 if update_btn:
                     advisor_tochange["full_name"] = edit_name
@@ -551,16 +565,17 @@ elif st.session_state["role"] == "Student":
                     with json_advisors.open("w", encoding="utf-8") as f:
                         json.dump(advisors, f, indent=4)
 
-                st.success("Connection is updated!")
-                st.rerun()
+                    st.success("Connection is updated!")
+                    st.rerun()
 
                 if delete_btn:
                     advisors.remove(advisor_tochange)
 
-                with json_advisors.open("w", encoding="utf-8") as f:
-                    json.dump(advisors, f, indent=4)
-                st.success("Connection deleted!")
-                st.rerun()
+                    with json_advisors.open("w", encoding="utf-8") as f:
+                        json.dump(advisors, f, indent=4)
+
+                    st.success("Connection deleted!")
+                    st.rerun()
 
             else:
                 if not filtered_advisors:
