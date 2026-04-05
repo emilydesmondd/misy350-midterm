@@ -21,7 +21,7 @@ if 'role' not in st.session_state:
     st.session_state['role'] = None
 
 users = [
-        {
+    {
         'id': '1',
         'email': 'emdesmo@udel.edu',
         'full_name': 'Emily Desmond',
@@ -32,10 +32,10 @@ users = [
 
 advisors = [
     {
-        'full_name' : 'Joe Doe',
-        'email' : 'joedoe@udel.edu',
-        'company' : 'Tech Solutions',
-        'position' : 'Senior Software Engineer'
+        'full_name': 'Joe Doe',
+        'email': 'joedoe@udel.edu',
+        'company': 'Tech Solutions',
+        'position': 'Senior Software Engineer'
     },
 ]
 
@@ -76,137 +76,84 @@ if json_users.exists() and json_users.stat().st_size > 0:
 
 json_advisors = Path("advisors.json")
 if json_advisors.exists() and json_advisors.stat().st_size > 0:
-    with json_advisors.open("r", encoding= "utf-8") as f:
+    with json_advisors.open("r", encoding="utf-8") as f:
         advisors = json.load(f)
 
 json_connections = Path("connection_request.json")
 if json_connections.exists() and json_connections.stat().st_size > 0:
-    with json_connections.open("r", encoding= "utf-8") as f:
+    with json_connections.open("r", encoding="utf-8") as f:
         connection_requests = json.load(f)
 
-#================Sign Up Screen =================
+
+# ================= Sign Up Screen =================
 if st.session_state["page"] == "signup":
 
     col1, col2, col3 = st.columns([1, 2, 1])
-    with col2: 
+    with col2:
         st.header("Network Manager :globe_with_meridians:")
     st.divider()
-        
+
     st.subheader("Create an Account")
 
     with st.container(border=True):
+        full_name_signup = st.text_input("Full Name", key="full_name_signup")
+        email_signup = st.text_input("Email Address", key="email_signup")
+        password_signup = st.text_input("Password", type="password", key="password_signup")
+        role_signup = st.selectbox("Role", ["Student", "Advisor"], key="role_signup")
 
-                full_name_signup = st.text_input("Full Name", key = "full_name_signup")
+        if st.button("Create Account", type="primary", use_container_width=True):
+            if not full_name_signup or not email_signup or not password_signup:
+                st.warning("Please fill out all fields.")
+            else:
+                st.session_state["logged_in"] = True
+                st.session_state["user"] = {
+                    "id": str(uuid.uuid4()),
+                    "email": email_signup,
+                    "full_name": full_name_signup,
+                    "password": password_signup,
+                    "role": role_signup
+                }
+                st.session_state["role"] = role_signup
+                users.append(st.session_state["user"])
 
-                email_signup = st.text_input("Email Address", key = "email_signup")
+                with open(json_users, "w") as f:
+                    json.dump(users, f, indent=4)
 
-                password_signup = st.text_input("Password", type="password", key = "password_signup")
+                with st.spinner("Creating account..."):
+                    time.sleep(2)
 
-                role_signup = st.selectbox("Role", ["Student", "Advisor"], key="role_signup")
-        
-                if st.button("Create Account", type="primary",use_container_width=True):
-                    if not full_name_signup or not email_signup or not password_signup:
-                        st.warning("Please fill out all fields.")
-                    else:
-                        st.session_state["logged_in"]= True
-                    
-                        st.session_state["user"] = {
-                        "id": str(uuid.uuid4()),
-                        "email": email_signup,
-                        "full_name": full_name_signup,
-                        "password": password_signup,
-                        "role": role_signup 
-                    }
-                        st.session_state["role"] = role_signup
-                        users.append(st.session_state["user"])  
-                        with open(json_users, "w") as f:
-                            json.dump(users, f, indent=4)
-                        with st.spinner("Creating account..."):
-                            time.sleep(2)
-                        st.success(f"Account created! Welcome, {full_name_signup}!")
+                st.success(f"Account created! Welcome, {full_name_signup}!")
+                st.session_state["page"] = "profile_setup"
+                st.rerun()
 
-                        st.session_state["page"] = "profile_setup"
-                        st.rerun()
-
-                if st.button("Have an Account? Log In", type="secondary", use_container_width=True):
-                    st.session_state["page"] = "login"
-                    st.rerun()
+        if st.button("Have an Account? Log In", type="secondary", use_container_width=True):
+            st.session_state["page"] = "login"
+            st.rerun()
 
 
-    if st.session_state["user"] is None:
-        st.warning("Please log in first.")
-        st.session_state["page"] = "login"
-        st.rerun()
-
-        st.markdown("### Profile Setup")
-        with st.container(border=True):
-
-            profile_full_name = st.text_input(
-            "Student Name",
-            value=st.session_state["user"]["full_name"],
-            key="profile_full_name")
-            profile_email = st.text_input(
-            "Student Email",
-            value=st.session_state["user"]["email"],
-            key="profile_email")
-            profile_school = st.text_input("School", key="profile_school")
-            profile_major = st.text_input("Major", key="profile_major")
-            profile_grad_year = st.text_input("Graduation Year", key="profile_grad_year")
-
-
-    if st.button("Complete Profile", type="primary", use_container_width=True):
-        new_profile = {
-            "profile_full_name": profile_full_name,
-            "profile_email": profile_email,
-            "profile_school": profile_school,
-            "profile_major": profile_major,
-            "profile_grad_year": profile_grad_year
-        }
-
-        found_profile = False
-        for i, prof in enumerate(profile):
-            if prof.get("profile_email", "").strip().lower() == profile_email.strip().lower():
-                profile[i] = new_profile
-                found_profile = True
-                break
-
-        if not found_profile:
-            profile.append(new_profile)
-
-        with open(json_profile, "w") as f:
-            json.dump(profile, f, indent=4)
-
-        st.success("Profile setup complete!")
-
-        if st.session_state["role"] == "Student":
-            st.session_state["page"] = "student_home_page"
-        else:
-            st.session_state["page"] = "advisor_home_page"
-
-        st.rerun()
-
-
+# ================= Profile Setup =================
 elif st.session_state["page"] == "profile_setup":
     if st.session_state["user"] is None:
         st.warning("Please log in first.")
         st.session_state["page"] = "login"
         st.rerun()
 
-        st.markdown("### Profile Setup")
-        with st.container(border=True):
+    st.markdown("### Profile Setup")
 
-            profile_full_name = st.text_input(
+    with st.container(border=True):
+        profile_full_name = st.text_input(
             "Student Name",
             value=st.session_state["user"]["full_name"],
-            key="profile_full_name")
-            profile_email = st.text_input(
+            key="profile_full_name"
+        )
+        profile_email = st.text_input(
             "Student Email",
             value=st.session_state["user"]["email"],
-            key="profile_email")
-            profile_school = st.text_input("School", key="profile_school")
-            profile_major = st.text_input("Major", key="profile_major")
-            profile_grad_year = st.text_input("Graduation Year", key="profile_grad_year")
-
+            key="profile_email"
+        )
+        profile_school = st.text_input("School", value=st.session_state["user"].get("school", ""), key="profile_school")
+        profile_major = st.text_input("Major", value=st.session_state["user"].get("major", ""), key="profile_major")
+        profile_grad_year = st.text_input("Graduation Year", value=st.session_state["user"].get("grad_year", ""), key="profile_grad_year")
 
     if st.button("Complete Profile", type="primary", use_container_width=True):
         new_profile = {
@@ -239,172 +186,67 @@ elif st.session_state["page"] == "profile_setup":
 
         st.rerun()
 
-#
-#============ Student Dashboard ============
-    elif st.session_state["page"] == 'student_dashboard':
-        st.markdown('### Here is your Network!')
 
-        tab1, tab2 = st.tabs(['Add Connections', 'Manage Connections'])
-        with tab1:
-            st.subheader("Request a Connection")
-            st.markdown("Send a networking request to an advisor.")
-
-            advisor_options = [f"{advisor['full_name']} - {advisor['company']}" for advisor in advisors]
-            selected_advisor = st.selectbox("Choose an Advisor", advisor_options)
-
-            student_name = st.text_input("Your Name")
-            student_email = st.text_input("Your Email")
-            student_school = st.text_input("School")
-            student_major = st.text_input("Major")
-            notes = st.text_area("Message to Advisor", height=120)
-
-            if st.button("Submit Request", type="primary", use_container_width=True):
-                if not student_name or not student_email or not notes:
-                    st.warning("Please fill out all required fields.")
-                else:
-                    advisor_name = selected_advisor.split(" - ")[0]
-                    advisor_company = selected_advisor.split(" - ")[1]
-                new_request = {
-                "request_id": str(uuid.uuid4()),
-                "status": "Pending",
-                "advisor_name": advisor_name,
-                "advisor_company": advisor_company,
-                "student_email": student_email,
-                "student_name": student_name,
-                "student_school": student_school,
-                "student_major": student_major,
-                "notes": notes,
-                "advisor_note": ""
-            }
-
-                connection_requests.append(new_request)
-
-                with open(json_connections, "w") as f:
-                    json.dump(connection_requests, f, indent=4)
-
-                st.success("Request sent!")
-                time.sleep(2)
-                st.rerun()
-
-
-        with tab2:
-            st.subheader("Manage Connections")
-            st.subheader("Manage Connections")
-
-            advisor_tochange = None
-            selected_index = None
-
-            event = st.dataframe(advisors,
-            on_select="rerun",
-            selection_mode="single-row",
-            use_container_width=True,
-            key="manage_connections_table"
-            )
-
-            if event.selection.rows:
-                selected_index = event.selection.rows[0]
-                advisor_tochange = advisors[selected_index]
-
-            if advisor_tochange is not None:
-                edit_name = st.text_input("Full Name", value=advisor_tochange.get("full_name", ""),
-                key="edit_full_name")
-                edit_email = st.text_input("Email", value=advisor_tochange.get("email", ""),
-                key="edit_email")
-                edit_company = st.text_input("Company", value=advisor_tochange.get("company", ""),
-                key="edit_company")
-                edit_position = st.text_input("Position", value=advisor_tochange.get("position", ""),
-                key="edit_position")
-
-                update_btn = st.button("Update Connection",
-                key=f"btn_update_{selected_index}",
-                use_container_width=True,
-                type="primary")
-
-                if update_btn:
-                    advisor_tochange["full_name"] = edit_name
-                    advisor_tochange["email"] = edit_email
-                    advisor_tochange["company"] = edit_company
-                    advisor_tochange["position"] = edit_position
-
-                    with json_advisors.open("w", encoding="utf-8") as f:
-                        json.dump(advisors, f, indent=4)
-
-                    st.success("Connection is updated!")
-                    st.rerun()
-
-            else:
-                st.info("Select a connection to edit.")
-
-#============ Student AI Email Helper ============
-    elif st.session_state["page"] == "AI_email_helper":
-        st.markdown("### AI Email Helper")
-        st.markdown("This is where students can get help drafting emails to advisors.")
-        st.markdown("Under Construction")
-
-
-#================Log In Screen =================
+# ================= Log In Screen =================
 elif st.session_state["page"] == "login":
     col1, col2, col3 = st.columns([1, 2, 1])
-    with col2: st.header("Network Manager :globe_with_meridians:")
+    with col2:
+        st.header("Network Manager :globe_with_meridians:")
 
     st.divider()
 
     left_spacer, center_column, right_spacer = st.columns([1, 2, 1])
     with center_column:
-            st.subheader("Log In")
-            with st.container(border=True, width=600):
-                email_input = st.text_input("Email Address", key = "email_login")
-                password_input = st.text_input("Password", type="password", key = "password")
-        
-                if st.button("Log In", type="primary",use_container_width=True):
-                    with st.spinner("Logging in..."):
+        st.subheader("Log In")
+        with st.container(border=True, width=600):
+            email_input = st.text_input("Email Address", key="email_login")
+            password_input = st.text_input("Password", type="password", key="password")
+
+            if st.button("Log In", type="primary", use_container_width=True):
+                with st.spinner("Logging in..."):
+                    time.sleep(2)
+
+                    found_user = None
+                    for user in users:
+                        if user["email"].strip().lower() == email_input.strip().lower() and user["password"] == password_input:
+                            found_user = user
+                            break
+
+                    if found_user and found_user["role"] == "Student":
+                        st.success(f"Welcome back, {found_user['email']}!")
+                        st.session_state["logged_in"] = True
+                        st.session_state["user"] = found_user
+                        st.session_state["role"] = found_user["role"]
+                        st.session_state["page"] = "student_home_page"
                         time.sleep(2)
+                        st.rerun()
 
-                        found_user = None
-                        for user in users:
-                            if user["email"].strip().lower() == email_input.strip().lower() and user["password"] == password_input:
-                                found_user = user
-                                break
-                
-                        if found_user and found_user["role"] == "Student":
-                            st.success(f"Welcome back, {found_user['email']}!")
-                            st.session_state["logged_in"]= True
-                            st.session_state["user"] = found_user
-                            st.session_state["role"] = found_user['role']
-                            st.session_state["page"] = "student_home_page"
-                            time.sleep(2)
-                            st.rerun()
+                    elif found_user and found_user["role"] == "Advisor":
+                        st.success(f"Welcome back, {found_user['email']}!")
+                        st.session_state["logged_in"] = True
+                        st.session_state["user"] = found_user
+                        st.session_state["role"] = found_user["role"]
+                        st.session_state["page"] = "advisor_home_page"
+                        time.sleep(2)
+                        st.rerun()
 
-                        elif found_user and found_user["role"] == "Advisor":
-                            st.success(f"Welcome back, {found_user['email']}!")
-                            st.session_state["logged_in"]= True
-                            st.session_state["user"] = found_user
-                            st.session_state["role"] = found_user['role']
-                            st.session_state["page"] = "advisor_home_page"
-                            time.sleep(2)
-                            st.rerun()
+                    else:
+                        st.error("Invalid email or password. Please try again.")
 
-                        else:
-                            st.error("Invalid email or password. Please try again.")
-
-                if st.button("Don't have an account? Sign Up", type="secondary", use_container_width=True):
-                    st.session_state["page"] = "signup"
-                    st.rerun()
+            if st.button("Don't have an account? Sign Up", type="secondary", use_container_width=True):
+                st.session_state["page"] = "signup"
+                st.rerun()
 
 
-#============ Advisor Home Page ============
-if st.session_state["role"] == "Advisor":
+# ================= Advisor Pages =================
+elif st.session_state["role"] == "Advisor":
 
     if st.session_state["page"] == "advisor_home_page":
         st.markdown("This is the Advisor Home Page")
         st.markdown(f'### Welcome, {st.session_state["user"]["full_name"]}!')
 
-
     elif st.session_state["page"] == "advisor_dashboard":
         st.markdown('### Network!')
-
-        view_connections = []
-
 
         tab1, tab2, tab3 = st.tabs(['Students', 'Events', 'Option'])
 
@@ -542,18 +384,19 @@ if st.session_state["role"] == "Advisor":
                                 st.rerun()
                     else:
                         st.info("Select a request to view details.")
+
         with tab2:
             st.subheader("Manage Connections")
+
         with tab3:
             st.subheader("Option")
             st.markdown("Under Construction")
 
 
-#============ Student Home Page ============
-if st.session_state["role"] == "Student":
+# ================= Student Pages =================
+elif st.session_state["role"] == "Student":
 
     if st.session_state["page"] == "student_home_page":
-
         st.header(f'Welcome, {st.session_state["user"]["full_name"]}!')
         st.subheader("Your Network")
         st.divider()
@@ -564,20 +407,23 @@ if st.session_state["role"] == "Student":
         for request in connection_requests:
             if request["status"].strip().lower() == "pending" and request["student_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
                 pending.append({
-                "Status": request["status"],
-                "Advisor": request.get("advisor_name", ""),
-                "Company": request.get("advisor_company", ""),})
+                    "Status": request["status"],
+                    "Advisor": request.get("advisor_name", ""),
+                    "Company": request.get("advisor_company", ""),
+                })
 
         col1, col2, col3 = st.columns([4, 3, 3])
 
         with col1:
             st.markdown("## Pending Requests")
             st.dataframe(pending if pending else [], use_container_width=True)
+
         with col2:
             with st.container(border=True):
                 st.markdown("### Resume")
                 with st.expander("Upload Your Resume"):
                     st.file_uploader("Choose a file", type=["pdf", "docx"], key="resume_uploader")
+
             with st.container(border=True):
                 st.markdown("### Upcoming Events")
                 st.markdown("Under Construction")
@@ -586,125 +432,122 @@ if st.session_state["role"] == "Student":
             with st.container(border=True):
                 st.markdown("### Your Details")
 
-            for prof in profile:
-                if prof["profile_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
-                    profile_found = True
-                    with st.container(border=True, horizontal=False):
+                for prof in profile:
+                    if prof["profile_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
+                        profile_found = True
                         st.markdown(f"**Name:** {prof.get('profile_full_name','')}")
                         st.markdown(f"**Email:** {prof.get('profile_email','')}")
                         st.markdown(f"**Major:** {prof.get('profile_major','')}")
                         st.markdown(f"**School:** {prof.get('profile_school','')}")
                         st.markdown(f"**Grad Year:** {prof.get('profile_grad_year','')}")
 
-            if not profile_found:
-                st.info("Complete your profile to see your details here.")
+                if not profile_found:
+                    st.info("Complete your profile to see your details here.")
 
-#============ Student Dashboard ============
-elif st.session_state["page"] == 'student_dashboard' and st.session_state["role"] == "Student":
-    st.markdown('### Here is your Network!')
+    elif st.session_state["page"] == "student_dashboard":
+        st.markdown('### Here is your Network!')
 
-    tab1, tab2 = st.tabs(['Add Connections', 'Manage Connections'])
-    with tab1:
-        st.subheader("Request a Connection")
-        st.markdown("Send a networking request to an advisor.")
+        tab1, tab2 = st.tabs(['Add Connections', 'Manage Connections'])
 
-        advisor_options = [f"{advisor['full_name']} - {advisor['company']}" for advisor in advisors]
-        selected_advisor = st.selectbox("Choose an Advisor", advisor_options)
+        with tab1:
+            st.subheader("Request a Connection")
+            st.markdown("Send a networking request to an advisor.")
 
-        student_name = st.text_input("Your Name")
-        student_email = st.text_input("Your Email")
-        student_school = st.text_input("School")
-        student_major = st.text_input("Major")
-        notes = st.text_area("Message to Advisor", height=120)
+            advisor_options = [f"{advisor['full_name']} - {advisor['company']}" for advisor in advisors]
+            selected_advisor = st.selectbox("Choose an Advisor", advisor_options)
 
-        if st.button("Submit Request", type="primary", use_container_width=True):
-            if not student_name or not student_email or not notes:
-                st.warning("Please fill out all required fields.")
-            else:
-                advisor_name = selected_advisor.split(" - ")[0]
-                advisor_company = selected_advisor.split(" - ")[1]
-            new_request = {
-                "request_id": str(uuid.uuid4()),
-                "status": "Pending",
-                "advisor_name": advisor_name,
-                "advisor_company": advisor_company,
-                "student_email": student_email,
-                "student_name": student_name,
-                "student_school": student_school,
-                "student_major": student_major,
-                "notes": notes,
-                "advisor_note": ""
-            }
+            student_name = st.text_input("Your Name")
+            student_email = st.text_input("Your Email")
+            student_school = st.text_input("School")
+            student_major = st.text_input("Major")
+            notes = st.text_area("Message to Advisor", height=120)
 
-            connection_requests.append(new_request)
+            if st.button("Submit Request", type="primary", use_container_width=True):
+                if not student_name or not student_email or not notes:
+                    st.warning("Please fill out all required fields.")
+                else:
+                    advisor_name = selected_advisor.split(" - ")[0]
+                    advisor_company = selected_advisor.split(" - ")[1]
 
-            with open(json_connections, "w") as f:
-                json.dump(connection_requests, f, indent=4)
+                    new_request = {
+                        "request_id": str(uuid.uuid4()),
+                        "status": "Pending",
+                        "advisor_name": advisor_name,
+                        "advisor_company": advisor_company,
+                        "student_email": student_email,
+                        "student_name": student_name,
+                        "student_school": student_school,
+                        "student_major": student_major,
+                        "notes": notes,
+                        "advisor_note": ""
+                    }
 
-                st.success("Request sent!")
-                time.sleep(2)
-                st.rerun()
+                    connection_requests.append(new_request)
 
+                    with open(json_connections, "w") as f:
+                        json.dump(connection_requests, f, indent=4)
 
-    with tab2:
-        st.subheader("Manage Connections")
-        st.subheader("Manage Connections")
+                    st.success("Request sent!")
+                    time.sleep(2)
+                    st.rerun()
 
-        advisor_tochange = None
-        selected_index = None
+        with tab2:
+            st.subheader("Manage Connections")
 
-        event = st.dataframe(advisors,
-            on_select="rerun",
-            selection_mode="single-row",
-            use_container_width=True,
-            key="manage_connections_table"
+            advisor_tochange = None
+            selected_index = None
+
+            event = st.dataframe(
+                advisors,
+                on_select="rerun",
+                selection_mode="single-row",
+                use_container_width=True,
+                key="manage_connections_table"
             )
 
-        if event.selection.rows:
-            selected_index = event.selection.rows[0]
-            advisor_tochange = advisors[selected_index]
+            if event.selection.rows:
+                selected_index = event.selection.rows[0]
+                advisor_tochange = advisors[selected_index]
 
-        if advisor_tochange is not None:
-            edit_name = st.text_input("Full Name", value=advisor_tochange.get("full_name", ""),
-                key="edit_full_name")
-            edit_email = st.text_input("Email", value=advisor_tochange.get("email", ""),
-                key="edit_email")
-            edit_company = st.text_input("Company", value=advisor_tochange.get("company", ""),
-                key="edit_company")
-            edit_position = st.text_input("Position", value=advisor_tochange.get("position", ""),
-                key="edit_position")
+            if advisor_tochange is not None:
+                edit_name = st.text_input("Full Name", value=advisor_tochange.get("full_name", ""), key="edit_full_name")
+                edit_email = st.text_input("Email", value=advisor_tochange.get("email", ""), key="edit_email")
+                edit_company = st.text_input("Company", value=advisor_tochange.get("company", ""), key="edit_company")
+                edit_position = st.text_input("Position", value=advisor_tochange.get("position", ""), key="edit_position")
 
-            update_btn = st.button("Update Connection",
-                key=f"btn_update_{selected_index}",
-                use_container_width=True,
-                type="primary")
+                update_btn = st.button(
+                    "Update Connection",
+                    key=f"btn_update_{selected_index}",
+                    use_container_width=True,
+                    type="primary"
+                )
 
-            if update_btn:
-                advisor_tochange["full_name"] = edit_name
-                advisor_tochange["email"] = edit_email
-                advisor_tochange["company"] = edit_company
-                advisor_tochange["position"] = edit_position
+                if update_btn:
+                    advisor_tochange["full_name"] = edit_name
+                    advisor_tochange["email"] = edit_email
+                    advisor_tochange["company"] = edit_company
+                    advisor_tochange["position"] = edit_position
 
-                with json_advisors.open("w", encoding="utf-8") as f:
-                    json.dump(advisors, f, indent=4)
+                    with json_advisors.open("w", encoding="utf-8") as f:
+                        json.dump(advisors, f, indent=4)
 
                     st.success("Connection is updated!")
                     st.rerun()
+            else:
+                st.info("Select a connection to edit.")
 
-        else:
-            st.info("Select a connection to edit.")
+    elif st.session_state["page"] == "AI_email_helper":
+        st.markdown("### AI Email Helper")
+        st.markdown("This is where students can get help drafting emails to advisors.")
+        st.markdown("Under Construction")
 
-#============ Student AI Email Helper ============
-elif st.session_state["page"] == "AI_email_helper" and st.session_state["role"] == "Student":
-    st.markdown("### AI Email Helper")
-    st.markdown("This is where students can get help drafting emails to advisors.")
-    st.markdown("Under Construction")
-#================Page Navigation in Sidebar =================
+
+# ================= Page Navigation in Sidebar =================
 if st.session_state["logged_in"]:
     with st.sidebar:
         st.markdown("### Move From Page to Page")
-        if st.session_state["role"] == "Student":
 
+        if st.session_state["role"] == "Student":
             if st.button("Home", key="home_btn"):
                 st.session_state["page"] = "student_home_page"
                 st.rerun()
@@ -727,11 +570,10 @@ if st.session_state["logged_in"]:
                     st.session_state["logged_in"] = False
                     st.session_state["user"] = None
                     st.session_state["role"] = None
+                    st.session_state["page"] = "login"
                     st.rerun()
 
-
         if st.session_state["role"] == "Advisor":
-
             if st.button("Home", key="home_btn_2"):
                 st.session_state["page"] = "advisor_home_page"
                 st.rerun()
@@ -740,8 +582,8 @@ if st.session_state["logged_in"]:
                 st.session_state["page"] = "advisor_dashboard"
                 st.rerun()
 
-            if st.button("Profile", key="profile_btn"):
-                st.session_state["page"] = "profile"
+            if st.button("Profile", key="profile_btn_2"):
+                st.session_state["page"] = "profile_setup"
                 st.rerun()
 
             if st.button("Log Out", key="logout_btn_2"):
@@ -750,5 +592,5 @@ if st.session_state["logged_in"]:
                     st.session_state["logged_in"] = False
                     st.session_state["user"] = None
                     st.session_state["role"] = None
+                    st.session_state["page"] = "login"
                     st.rerun()
-

@@ -1,14 +1,32 @@
 [
     {
         "full_name": "Joe Doe",
-        "email": "jdoe@udel.edu",
+        "email": "joedoe@udel.edu",
         "company": "Tech Solutions",
         "position": "Senior Software Engineer"
     },
     {
-        "full_name": "Jane Doe",
-        "email": "Janedoe@google.com",
+        "full_name": "Sarah Kim",
+        "email": "sarahkim@udel.edu",
         "company": "Google",
-        "position": "IT Specialist "
+        "position": "Product Manager"
+    },
+    {
+        "full_name": "Michael Torres",
+        "email": "mtorres@udel.edu",
+        "company": "JP Morgan",
+        "position": "Data Analyst"
+    },
+    {
+        "full_name": "Ava Patel",
+        "email": "apatel@udel.edu",
+        "company": "Amazon",
+        "position": "Cloud Engineer"
+    },
+    {
+        "full_name": "Ryan Chen",
+        "email": "rchen@udel.edu",
+        "company": "Microsoft",
+        "position": "Software Developer"
     }
 ]
