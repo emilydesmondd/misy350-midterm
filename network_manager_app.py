@@ -1,4 +1,3 @@
-import requests
 import streamlit as st
 import json
 from pathlib import Path
@@ -65,7 +64,6 @@ json_connections = Path("connection_request.json")
 if json_connections.exists() and json_connections.stat().st_size > 0:
     with json_connections.open("r", encoding= "utf-8") as f:
         connection_requests = json.load(f)
-
 
 
 
@@ -199,10 +197,6 @@ if st.session_state["role"] == "Advisor":
             st.markdown("Under Construction")
 
 
-
-
-
-
 #============ Student Home Page ============
 elif st.session_state["role"] == "Student":
 
@@ -219,7 +213,7 @@ elif st.session_state["role"] == "Student":
     elif st.session_state["page"] == 'student_dashboard':
         st.markdown('### Here is your Network!')
 
-        tab1, tab2, tab3 = st.tabs(['Add Connections', 'Update Connections', 'Delete Connections'])
+        tab1, tab2 = st.tabs(['Add Connections', 'Manage Connections'])
         with tab1:
             st.subheader("Request a Connection")
             st.markdown("Send a networking request to an advisor.")
@@ -264,69 +258,51 @@ elif st.session_state["role"] == "Student":
 
         with tab2:
             st.subheader("Manage Connections")
+            st.subheader("Manage Connections")
 
-            edited_connections = []
-            for person in advisors:
-                edited_connections.append(person["full_name"])
+            advisor_tochange = None
+            selected_index = None
 
-            with st.container(border=True):
-                selected_item = st.selectbox(
-                "Select an item",
-                edited_connections,
-                label_visibility="collapsed"
-                )
-
-            advisor_tochange = {}
-            for person in advisors:
-                if person["full_name"] == selected_item:
-                    advisor_tochange = person
-                    break
-
-            if advisor_tochange:
-                edit_name = st.text_input("Full Name",
-                value=advisor_tochange["full_name"],
-                key=f"edit_name_{advisor_tochange['full_name']}"
-                )
-            edit_email = st.text_input("Email",
-                value=advisor_tochange["email"],
-                key=f"edit_email_{advisor_tochange['full_name']}"
-            )
-            edit_company = st.text_input("Company",
-                value=advisor_tochange["company"],
-                key=f"edit_company_{advisor_tochange['full_name']}"
-            )
-            edit_position = st.text_input("Position",
-                value=advisor_tochange["position"],
-                key=f"edit_position_{advisor_tochange['full_name']}"
+            event = st.dataframe(advisors,
+            on_select="rerun",
+            selection_mode="single-row",
+            use_container_width=True,
+            key="manage_connections_table"
             )
 
-            update_btn = st.button("Update Connection",
-                key=f"btn_update_{advisor_tochange['full_name']}",
+            if event.selection.rows:
+                selected_index = event.selection.rows[0]
+                advisor_tochange = advisors[selected_index]
+
+            if advisor_tochange is not None:
+                edit_name = st.text_input("Full Name", value=advisor_tochange.get("full_name", ""),
+                key="edit_full_name")
+                edit_email = st.text_input("Email", value=advisor_tochange.get("email", ""),
+                key="edit_email")
+                edit_company = st.text_input("Company", value=advisor_tochange.get("company", ""),
+                key="edit_company")
+                edit_position = st.text_input("Position", value=advisor_tochange.get("position", ""),
+                key="edit_position")
+
+                update_btn = st.button("Update Connection",
+                key=f"btn_update_{selected_index}",
                 use_container_width=True,
-                type="primary"
-            )
+                type="primary")
 
-            if update_btn:
-                with st.spinner("Updating the connection..."):
-                    time.sleep(2)
+                if update_btn:
                     advisor_tochange["full_name"] = edit_name
                     advisor_tochange["email"] = edit_email
                     advisor_tochange["company"] = edit_company
                     advisor_tochange["position"] = edit_position
 
-                with json_advisors.open("w", encoding="utf-8") as f:
-                    json.dump(advisors, f, indent=4)
+                    with json_advisors.open("w", encoding="utf-8") as f:
+                        json.dump(advisors, f, indent=4)
 
-                st.success("Connection is updated!")
-                #st.balloons()
-                time.sleep(2)
-                st.rerun()
+                    st.success("Connection is updated!")
+                    st.rerun()
 
-
-        with tab3:
-            st.subheader("Other Option")
-            st.markdown("Under Construction")
-
+            else:
+                st.info("Select a connection to edit.")
 
 #============ Student AI Email Helper ============
     elif st.session_state["page"] == "AI_email_helper":
@@ -335,8 +311,49 @@ elif st.session_state["role"] == "Student":
         st.markdown("Under Construction")
 
 
+#================Sign Up Screen =================
+elif st.session_state["page"] == "signup":
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2: 
+        st.header("Network Manager :globe_with_meridians:")
+    st.divider()
+        
+    st.subheader("Create an Account")
+
+    with st.container(border=True):
+
+                full_name_signup = st.text_input("Full Name", key = "full_name_signup")
+
+                email_signup = st.text_input("Email Address", key = "email_signup")
+
+                password_signup = st.text_input("Password", type="password", key = "password_signup")
+
+                role_signup = st.selectbox("Role", ["Student", "Advisor"], key="role_signup")
+        
+                if st.button("Create Account", type="primary",use_container_width=True):
+                    st.session_state["logged_in"]= True
+                    st.session_state["user"] = {
+                        "id": str(uuid.uuid4()),
+                        "email": email_signup,
+                        "full_name": full_name_signup,
+                        "password": password_signup,
+                        "role": role_signup 
+                    }
+                    st.session_state["role"] = role_signup
+                    users.append(st.session_state["user"])  
+                    with open(json_users, "w") as f:
+                        json.dump(users, f, indent=4)
+                    with st.spinner("Creating account..."):
+                        time.sleep(2)
+                    st.success(f"Account created! Welcome, {full_name_signup}!")
+
+                    st.session_state["page"] = "student_home_page" if role_signup == "Student" else "advisor_home_page"
+                    st.rerun()
 
 
+                if st.button("Have an Account? Log In", type="secondary", use_container_width=True):
+                    st.session_state["page"] = "login"
+                    st.rerun()
 
 
 #================Log In Screen =================
@@ -384,9 +401,9 @@ else:
                         else:
                             st.error("Invalid email or password. Please try again.")
 
-
-
-
+                if st.button("Don't have an account? Sign Up", type="secondary", use_container_width=True):
+                    st.session_state["page"] = "signup"
+                    st.rerun()
 
 
 #================Page Navigation in Sidebar =================
