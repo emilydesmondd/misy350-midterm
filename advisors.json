@@ -1,7 +1,7 @@
 [
     {
         "full_name": "Joe Doe",
-        "email": "joedoe@udel.edu",
+        "email": "joedoe@gmail.com",
         "company": "Tech Solutions",
         "position": "Senior Software Engineer"
     },
@@ -28,5 +28,11 @@
         "email": "rchen@udel.edu",
         "company": "Microsoft",
         "position": "Software Developer"
+    },
+    {
+        "full_name": "Marcus Reed",
+        "email": "mreed@tesla.com",
+        "company": "Tesla",
+        "position": "Operations Technology Lead"
     }
 ]
