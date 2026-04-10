@@ -21,78 +21,29 @@ if 'role' not in st.session_state:
     st.session_state['role'] = None
 
 users = [
-{
-"users": [
-{
-"id": "1",
-"email": "emdesmo@udel.edu",
-"full_name": "Emily Desmond",
-"password": "testing123",
-"role": "Student",
-"school": "University of Delaware",
-"major": "Management Information Systems",
-"grad_year": 2026
-},
-{
-"id": "2",
-"email": "joedoe@udel.edu",
-"full_name": "Joe Doe",
-"password": "testing123",
-"role": "Advisor",
-"company": "Tech Solutions",
-"position": "Senior Software Engineer"
-}
-],
-"requests": []
-}
-]
-
-connection_requests = [
     {
-        "request_id": "011101",
-        "status": "Pending",
-        "advisor_email": "joedoe@udel.edu",
-        "advisor_name": "Joe Doe",
-        "advisor_company": "Tech Solutions",
-        "student_email": "emdesmo@udel.edu",
-        "student_name": "Emily Desmond",
-        "student_school": "University of Delaware",
-        "student_major": "Management Information Systems",
-        "notes": "I would love to hear about your experience in the tech industry and any advice you have for someone starting out.",
-        "advisor_note": ""
+        'id': '1',
+        'email': 'emdesmo@udel.edu',
+        'full_name': 'Emily Desmond',
+        'password': 'testing123',
+        'role': 'Student',
+        'connection_name': 'Joe Doe',
+        'connection_email': 'joedoe@udel.edu',
+        'connection_company': 'Tech Solutions',
+        'connection_position': 'Senior Software Engineer',
+        'connection_status': 'Pending',
+        'connection_school': 'University of Delaware',
+        'connection_major': 'Management Information Systems',
+        'connection_grad_yr': 2026,
+        'notes': ''
     }
 ]
 
-json_connections = Path("connection_request.json")
-
-if json_connections.exists() and json_connections.stat().st_size > 0:
-    with json_connections.open("r", encoding="utf-8") as f:
-        connection_requests = json.load(f)
-
 json_users = Path("users.json")
-
-default_data = {"users": [], "requests": []}
-
 if json_users.exists() and json_users.stat().st_size > 0:
     with open(json_users, "r") as f:
-        data = json.load(f)
+        users = json.load(f)
 
-    if isinstance(data, list):
-        users = data
-        connection_requests = []
-    else:
-        users = data.get("users", [])
-        connection_requests = data.get("requests", [])
-else:
-    users = []
-    connection_requests = []
-
-def save_data():
-    with open(json_users, "w") as f:
-        json.dump({
-            "users": users,
-            "requests": connection_requests
-        }, f, indent=4)
 
 # ================= Sign Up Screen =================
 if st.session_state["page"] == "signup":
@@ -129,7 +80,6 @@ if st.session_state["page"] == "signup":
                 st.warning("Please fill out all fields.") 
 
             else:
-                user = next((user for user in users if "email" in user and user["email"].strip().lower() == email_signup.strip().lower()), None)
                 existing_emails = [user["email"].strip().lower() for user in users]
 
                 if email_signup.strip().lower() in existing_emails:
@@ -199,6 +149,7 @@ elif st.session_state["page"] == "profile_setup":
             "profile_major": profile_major
         }
 
+
         st.success("Profile setup complete!")
 
         if st.session_state["role"] == "Student":
@@ -238,9 +189,11 @@ elif st.session_state["page"] == "login":
 
                     found_user = None
 
-                user = next((user for user in users if "email" in user and "password" in user and user["email"].strip().lower() == email_input.strip().lower() and user["password"] == password_input), None)
-                if user:
-                    found_user = user
+                    for user in users:
+                        if user["email"].strip().lower() == email_input.strip().lower() and user["password"] == password_input:
+                            found_user = user
+                            break
+
                     if found_user and found_user["role"] == "Student":
                         st.success(f"Welcome back, {found_user['email']}!")
                         st.session_state["logged_in"] = True
@@ -259,8 +212,8 @@ elif st.session_state["page"] == "login":
                         time.sleep(2)
                         st.rerun()
 
-                else:
-                    st.error("Invalid email or password. Please try again.")
+                    else:
+                        st.error("Invalid email or password. Please try again.")
 
             if st.button("Don't have an account? Sign Up", type="secondary", use_container_width=True):
                 st.session_state["page"] = "signup"
@@ -279,7 +232,7 @@ elif st.session_state["role"] == "Advisor":
         profile_found = False
         pending_students = []
 
-        for request in connection_requests:
+        for request in users:
             if request["status"].strip().lower() == "pending" and request["advisor_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
                 pending_students.append({
                     "Status": request["status"],
@@ -400,31 +353,38 @@ elif st.session_state["role"] == "Advisor":
                     st.markdown("### Request Details")
 
                     if selected_request is not None:
-                        st.markdown(f"**Status:** {selected_request.get('Status', '')}")
-                        st.markdown(f"**Student Name:** {selected_request.get('Student Name', '')}")
-                        st.markdown(f"**Student Email:** {selected_request.get('Student Email', '')}")
-                        st.markdown(f"**School:** {selected_request.get('School', '')}")
-                        st.markdown(f"**Major:** {selected_request.get('Major', '')}")
+                        st.markdown(f"**Status:** {selected_request.get('connection_status', '')}")
+                        st.markdown(f"**Student Name:** {selected_request.get('connection_name', '')}")
+                        st.markdown(f"**Student Email:** {selected_request.get('connection_email', '')}")
+                        st.markdown(f"**School:** {selected_request.get('connection_school', '')}")
+                        st.markdown(f"**Major:** {selected_request.get('connection_major', '')}")
                         st.markdown(f"**Notes:** {selected_request.get('notes', '')}")
 
-                        if selected_request.get("Status", "").strip().lower() == "pending":
+                        if selected_request.get("connection_status", "").strip().lower() == "pending":
                             st.divider()
+
+                            advisor_note = st.text_area(
+                                "Advisor Note (optional)",
+                                key=f"note{selected_request['connection_email']}",
+                                height=100
+                            )
 
                             decision = st.radio(
                                 "Decision",
                                 ["Approved", "Rejected"],
-                                key=f"decision_{selected_request['Student Email']}"
+                                key=f"decision_{selected_request['connection_email']}"
                             )
 
                             if st.button(
                                 "Record Decision",
-                                key=f"record_decision_{selected_request['Student Email']}",
+                                key=f"record_decision_{selected_request['connection_email']}",
                                 type="primary",
                                 use_container_width=True
                             ):
                                 for request in users:
                                     if request["request_id"] == selected_request["request_id"]:
                                         request["status"] = decision
+                                        request["advisor_note"] = advisor_note
                                         break
 
                                 with open(json_users, "w", encoding="utf-8") as f:
@@ -507,8 +467,8 @@ elif st.session_state["role"] == "Advisor":
                     student_tochange["student_email"] = edit_email_student
                     student_tochange["student_school"] = edit_school_student
                     student_tochange["student_major"] = edit_major_student
-                    with json_connections.open("w", encoding="utf-8") as f:
-                        json.dump(connection_requests, f, indent=4)
+                with json_connections.open("w", encoding="utf-8") as f:
+                    json.dump(connection_requests, f, indent=4)
 
                 st.success("Connection is updated!")
                 st.rerun()
@@ -540,12 +500,21 @@ elif st.session_state["role"] == "Student":
         st.divider()
 
         profile_found = False
+        pending = []
+
+        for request in users:
+            if request["connection_status"].strip().lower() == "pending" and request["connection_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
+                pending.append({
+                    "Status": request["connection_status"],
+                    "Advisor": request.get("connection_name", ""),
+                    "Company": request.get("connection_company", ""),
+                })
 
         col1, col2, col3 = st.columns([4, 3, 3])
 
         with col1:
             st.markdown("## Pending Requests")
-            
+            st.dataframe(pending if pending else [], use_container_width=True)
 
         with col2:
             with st.container(border=True):
@@ -562,13 +531,13 @@ elif st.session_state["role"] == "Student":
                 st.markdown("### Your Details")
 
                 for prof in users:
-                    if prof["email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
+                    if prof["connection_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
                         profile_found = True
                         st.markdown(f"**Name:** {prof.get('full_name','')}")
                         st.markdown(f"**Email:** {prof.get('email','')}")
-                        st.markdown(f"**Major:** {prof.get('major','')}")
-                        st.markdown(f"**School:** {prof.get('school','')}")
-                        st.markdown(f"**Grad Year:** {prof.get('grad_year','')}")
+                        st.markdown(f"**Major:** {prof.get('connection_major','')}")
+                        st.markdown(f"**School:** {prof.get('connection_school','')}")
+                        st.markdown(f"**Grad Year:** {prof.get('connection_grad_year','')}")
 
                 if not profile_found:
                     st.info("Complete your profile to see your details here.")
@@ -576,13 +545,13 @@ elif st.session_state["role"] == "Student":
     elif st.session_state["page"] == "student_dashboard":
         st.markdown('### Here is your Network!')
 
-        tab1, tab2, tab3 = st.tabs(['Add Connections', 'Manage Connections', 'Pending Requests'])
+        tab1, tab2 = st.tabs(['Add Connections', 'Manage Connections'])
 
         with tab1:
             st.subheader("Request a Connection")
             st.markdown("Send a networking request to an advisor.")
 
-            advisor_options = [f"{advisor['full_name']} - {advisor['company']}" for advisor in users if advisor["role"].strip().lower() == "advisor"]
+            advisor_options = [f"{advisor['full_name']} - {advisor['company']}" for advisor in advisors]
             selected_advisor = st.selectbox("Choose an Advisor", advisor_options)
 
             student_name = st.text_input("Your Name", placeholder="John Doe")
@@ -604,20 +573,25 @@ elif st.session_state["role"] == "Student":
                             advisor_email = advisor["email"]
                             break
 
-                    new_request = {
-                        "request_id": str(uuid.uuid4()),
-                        "student_email": student_email,
-                        "student_name": student_name,
-                        "student_school": student_school,
-                        "student_major": student_major,
-                        "advisor_email": advisor_email,
-                        "advisor_name": advisor_name,
-                        "advisor_company": advisor_company,
-                        "Status": "Pending",
-                        "notes": notes
-                    }
+                    new_request = [{
+                            'id': str(uuid.uuid4()),
+                            'email': "",
+                            'full_name': "",
+                            'password': 'testing123',
+                            'role': '',
+                            'connection_name': 'Joe Doe',
+                            'connection_email': connection_email,
+                            'connection_company': 'Tech Solutions',
+                            'connection_position': 'Senior Software Engineer',
+                            'connection_status': 'Pending',
+                            'connection_school': 'University of Delaware',
+                            'connection_major': 'Management Information Systems',
+                            'connection_grad_yr': 2026,
+                            'notes': ''
+                            }]
 
-                    connection_requests.append(new_request)     
+                    users.append(new_request)
+
                     with open(json_users, "w") as f:
                         json.dump(users, f, indent=4)
 
@@ -641,9 +615,8 @@ elif st.session_state["role"] == "Student":
                 and request.get("advisor_email", "").strip() != ""]
 
             filtered_advisors = [
-            advisor for advisor in users
-            if advisor.get("role", "").strip().lower() == "advisor" and 
-            advisor.get("email", "").strip().lower() in connected_advisor_emails]
+            advisor for advisor in advisors
+            if advisor.get("email", "").strip().lower() in connected_advisor_emails]
 
             event = st.dataframe(
                 filtered_advisors,
@@ -686,8 +659,8 @@ elif st.session_state["role"] == "Student":
                     advisor_tochange["company"] = edit_company
                     advisor_tochange["position"] = edit_position
 
-                    with json_connections.open("w", encoding="utf-8") as f:
-                        json.dump(connection_requests, f, indent=4)
+                    with json_advisors.open("w", encoding="utf-8") as f:
+                        json.dump(advisors, f, indent=4)
 
                     st.success("Connection is updated!")
                     st.rerun()
@@ -713,21 +686,6 @@ elif st.session_state["role"] == "Student":
                     st.info("No approved connections yet.")
                 else:
                     st.info("Select a connection to edit.")
-        with tab3: 
-            st.markdown("### Pending Requests")
-            st.markdown("This is where students can view pending connection requests.")
-            pending = []
-
-            for request in connection_requests:
-                if request["Status"].strip().lower() == "pending" and request["advisor_email"].strip().lower() == st.session_state["user"]["email"].strip().lower():
-                        pending.append({
-                    "Status": request["Status"],
-                    "Advisor": request.get("advisor_name", ""),
-                    "Company": request.get("advisor_company", ""),
-                })
-
-            st.dataframe(pending if pending else [], use_container_width=True)
-
 
     elif st.session_state["page"] == "AI_email_helper":
         st.markdown("### AI Email Helper")

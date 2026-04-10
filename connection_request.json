@@ -9,8 +9,8 @@
         "student_name": "Dominic Lee",
         "student_school": "University of Delaware",
         "student_major": "Computer Science",
-        "notes": "Interested in software engineering and internships.",
-        "advisor_note": "Let's connect next week!"
+        "Status": "Approved",
+        "notes": "Interested in software engineering and internships."
     },
     {
         "request_id": "011112",
@@ -22,46 +22,7 @@
         "student_name": "Olivia Carter",
         "student_school": "University of Delaware",
         "student_major": "Finance",
-        "notes": "Looking for advice on consulting internships.",
-        "advisor_note": ""
-    },
-    {
-        "request_id": "011114",
-        "status": "Rejected",
-        "advisor_name": "Rachel Green",
-        "advisor_company": "Netflix",
-        "advisor_email": "rgreen@netflix.com",
-        "student_email": "dlee@udel.edu",
-        "student_name": "Dominic Lee",
-        "student_school": "University of Delaware",
-        "student_major": "Computer Science",
-        "notes": "Interested in backend engineering roles.",
-        "advisor_note": "Not accepting new connections at the moment."
-    },
-    {
-        "request_id": "49b5513d-c40a-4e85-a970-f7b3f6c40a98",
-        "status": "Pending",
-        "advisor_name": "Marcus Reed",
-        "advisor_company": "Tesla",
-        "advisor_email": "mreed@tesla.com",
-        "student_email": "emdesmo@udel.edu",
-        "student_name": "Emily Desmond",
-        "student_school": "University of Delaware",
-        "student_major": "Management Information Systems ",
-        "notes": "I would love to connect with you!",
-        "advisor_note": ""
-    },
-    {
-        "request_id": "0e1e68cd-628e-4f74-ade8-1ae29a434b02",
-        "status": "Approved",
-        "advisor_name": "Joe Doe",
-        "advisor_company": "Tech Solutions",
-        "advisor_email": "joedoe@gmail.com",
-        "student_email": "emdesmo@udel.edu",
-        "student_name": "Emily Desmond",
-        "student_school": "University of Delaware",
-        "student_major": "Management Information Systems",
-        "notes": "Hi, I'd love to chat!",
-        "advisor_note": ""
+        "Status": "Pending",
+        "notes": "Looking for advice on finance careers and internships."
     }
 ]
