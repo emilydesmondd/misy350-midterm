@@ -541,10 +541,11 @@ elif st.session_state["role"] == "Student":
 
         profile_found = False
 
-        col1, col2, col3 = st.columns([4, 3, 3])
+        col1, col2, col3 = st.columns([3, 3, 3])
 
         with col1:
-            st.markdown("## Pending Requests")
+            with st.container(border=True):
+                st.markdown("### Bubble")
             
 
         with col2:
@@ -552,10 +553,11 @@ elif st.session_state["role"] == "Student":
                 st.markdown("### Resume")
                 with st.expander("Upload Your Resume"):
                     st.file_uploader("Choose a file", type=["pdf", "docx"], key="resume_uploader")
+                    #save resume to user profile in users.json
 
             with st.container(border=True):
-                st.markdown("### Upcoming Events")
-                st.markdown("Under Construction")
+                with st.container(border=True):
+                    st.markdown("### Bubble")
 
         with col3:
             with st.container(border=True):
