@@ -1,219 +1,176 @@
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
-from geopy.geocoders import Nominatim
 import json
 from pathlib import Path
-from datetime import datetime
-import uuid
-import time
 
-st.set_page_config(page_title="Hangout Map", layout="centered")
+st.set_page_config(page_title="Hangout Map", layout="wide")
 
-json_file = Path("users.json")
+# -----------------------------
+# LOAD SAVED LOCATIONS
+# -----------------------------
 json_location = Path("location.json")
 
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if 'user' not in st.session_state:
-    st.session_state['user'] = None
-
-if 'page' not in st.session_state:
-    st.session_state['page'] = 'login'
-
-if 'role' not in st.session_state:
-    st.session_state['role'] = None
-
-if json_file.exists():
-    with open(json_file, "r") as f:
-        users = json.load(f)
-else:
-    users = [
-        {
-            "id": "1",
-            "email": "emdesmo@udel.edu",
-            "username": "System Admin",
-            "password": "testing123",
-            "role": "Admin"
-        }
-    ]
-    with open(json_file, "w") as f:
-        json.dump(users, f, indent=4)
-
+saved_locations = []
 if json_location.exists():
-    with open(json_location, "r") as f:
-        saved_locations = json.load(f)
-else:
-    saved_locations = []
-    with open(json_location, "w") as f:
-        json.dump(saved_locations, f, indent=4)
+    try:
+        with open(json_location, "r", encoding="utf-8") as f:
+            saved_locations = json.load(f)
+    except json.JSONDecodeError:
+        saved_locations = []
 
-st.markdown("<h1 style='text-align: center;'>Budget-Friendly Map</h1>", unsafe_allow_html=True)
+# -----------------------------
+# PRESET PLACES
+# -----------------------------
+places = {
+    "Main Street Newark": {"lat": 39.6837, "lon": -75.7497},
+    "Christiana Mall": {"lat": 39.6785, "lon": -75.6582},
+    "University of Delaware": {"lat": 39.6780, "lon": -75.7506},
+    "Barnes & Noble": {"lat": 39.6817, "lon": -75.7468},
+    "Starbucks Newark": {"lat": 39.6848, "lon": -75.7495},
+    "Cinemark Christiana": {"lat": 39.6778, "lon": -75.6570},
+    "Fred Rust Ice Arena": {"lat": 39.6632, "lon": -75.7508},
+    "Newark Reservoir": {"lat": 39.6948, "lon": -75.7745},
+    "College Square": {"lat": 39.6809, "lon": -75.7192},
+}
 
-# top buttons before login
-if not st.session_state["logged_in"]:
-    left_space, center_area, right_space = st.columns([1, 2, 1])
+# -----------------------------
+# DEALS DATA
+# -----------------------------
+deals = [
+    {"name": "Klondike Kate's", "deal": "20% off all items", "lat": 39.6839, "lon": -75.7496, "color": "#F9C6C9"},
+    {"name": "Santa Fe", "deal": "Buy one get one free margaritas", "lat": 39.6833, "lon": -75.7490, "color": "#F7D6BF"},
+    {"name": "The Greenhouse", "deal": "Free appetizer with any entree", "lat": 39.6827, "lon": -75.7513, "color": "#D8EFCF"},
+    {"name": "Grain Craft Bar", "deal": "15% off drinks on Wednesdays", "lat": 39.6844, "lon": -75.7497, "color": "#DDD6F3"},
+    {"name": "Christiana Mall Food Court", "deal": "Free drink with any combo meal", "lat": 39.6788, "lon": -75.6585, "color": "#F5D3E2"},
+    {"name": "Target Christiana", "deal": "10% off school supplies", "lat": 39.6769, "lon": -75.6547, "color": "#CFE3F6"},
+    {"name": "Barnes & Noble Cafe", "deal": "Buy a coffee, get a pastry half off", "lat": 39.6817, "lon": -75.7468, "color": "#F4E7BE"},
+    {"name": "Starbucks Newark", "deal": "Half-price iced drinks after 3 PM", "lat": 39.6848, "lon": -75.7495, "color": "#D7EFD9"},
+    {"name": "Fred Rust Ice Arena", "deal": "Student skate night: 2-for-1 admission", "lat": 39.6632, "lon": -75.7508, "color": "#D3EAF7"},
+    {"name": "Cinemark Christiana", "deal": "Student discount movie tickets on Thursdays", "lat": 39.6778, "lon": -75.6570, "color": "#E7D4F4"},
+    {"name": "College Square Shopping Center", "deal": "Free tote bag with $25 purchase", "lat": 39.6809, "lon": -75.7192, "color": "#D9E6F2"},
+    {"name": "Newark Reservoir Trail Stop", "deal": "Free smoothie upgrade on weekends", "lat": 39.6948, "lon": -75.7745, "color": "#D3EFE7"},
+]
 
-    with center_area:
-        st.write("")
-        button_col1, button_col2 = st.columns(2)
+# -----------------------------
+# STYLING
+# -----------------------------
+st.markdown("""
+<style>
+    .main-title {
+        text-align: center;
+        font-size: 42px;
+        font-weight: 700;
+        color: #6B5B73;
+        margin-bottom: 6px;
+    }
 
-        with button_col1:
-            if st.button("Login", use_container_width=True):
-                st.session_state["page"] = "login"
-                st.rerun()
+    .sub-text {
+        text-align: center;
+        font-size: 17px;
+        color: #8A7F88;
+        margin-bottom: 24px;
+    }
 
-        with button_col2:
-            if st.button("Register", use_container_width=True):
-                st.session_state["page"] = "register"
-                st.rerun()
+    .panel {
+        background-color: #FFFDFB;
+        padding: 18px;
+        border-radius: 18px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
 
-# sidebar only after login
-if st.session_state["logged_in"]:
-    st.sidebar.title("Navigation")
+    .deal-card {
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    if st.sidebar.button("Map"):
-        st.session_state["page"] = "map"
-        st.rerun()
+# -----------------------------
+# HEADER
+# -----------------------------
+st.markdown("<div class='main-title'>Budget Hangout Map</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub-text'>Find fun places and fake local deals around Newark</div>", unsafe_allow_html=True)
 
-    if st.sidebar.button("Logout"):
-        st.session_state["logged_in"] = False
-        st.session_state["user"] = None
-        st.session_state["role"] = None
-        st.session_state["page"] = "login"
-        st.rerun()
+# -----------------------------
+# LAYOUT
+# -----------------------------
+col1, col2 = st.columns([3, 1], gap="large")
 
-# register page
-if st.session_state["page"] == "register" and not st.session_state["logged_in"]:
-    left_space, center_area, right_space = st.columns([1, 2, 1])
+# -----------------------------
+# MAP PANEL
+# -----------------------------
+with col1:
+    st.markdown("<div class='panel'>", unsafe_allow_html=True)
 
-    with center_area:
-        st.header("Create an Account")
+    selected_place = st.selectbox("Choose a location", list(places.keys()))
+    coords = places[selected_place]
 
-        email = st.text_input("Email Address", key="register_email")
-        user_name = st.text_input("Username", key="register_username")
-        password = st.text_input("Password", type="password", key="register_password")
-        role = st.selectbox(
-            "Role",
-            ["College Student", "High-School Student", "Other"],
-            key="register_role"
-        )
+    m = folium.Map(location=[coords["lat"], coords["lon"]], zoom_start=13)
 
-        if st.button("Create Account"):
-            if not email or not user_name or not password:
-                st.error("Please fill out all fields.")
-            else:
-                email_exists = any(
-                    user["email"].strip().lower() == email.strip().lower()
-                    for user in users
-                )
+    # selected location
+    folium.Marker(
+        [coords["lat"], coords["lon"]],
+        popup=selected_place,
+        tooltip="Selected Location",
+        icon=folium.Icon(color="blue")
+    ).add_to(m)
 
-                if email_exists:
-                    st.error("An account with this email already exists.")
-                else:
-                    with st.spinner("Creating your account..."):
-                        time.sleep(2)
-
-                        new_user = {
-                            "id": str(uuid.uuid4()),
-                            "email": email,
-                            "username": user_name,
-                            "password": password,
-                            "role": role,
-                            "registered_at": str(datetime.now())
-                        }
-
-                        users.append(new_user)
-
-                        with open(json_file, "w") as f:
-                            json.dump(users, f, indent=4)
-
-                    st.success("Account created successfully!")
-                    st.session_state["page"] = "login"
-                    st.rerun()
-
-# login page
-elif st.session_state["page"] == "login" and not st.session_state["logged_in"]:
-    left_space, center_area, right_space = st.columns([1, 2, 1])
-
-    with center_area:
-        st.header("Login")
-
-        login_email = st.text_input("Email", key="login_email")
-        login_password = st.text_input("Password", type="password", key="login_password")
-
-        if st.button("Log In"):
-            with st.spinner("Verifying credentials..."):
-                time.sleep(2)
-
-                matched_user = None
-                for user in users:
-                    if user["email"].strip().lower() == login_email.strip().lower() and user["password"] == login_password:
-                        matched_user = user
-                        break
-
-                if matched_user:
-                    st.session_state["logged_in"] = True
-                    st.session_state["user"] = matched_user
-                    st.session_state["role"] = matched_user["role"]
-                    st.session_state["page"] = "map"
-                    st.success(f"Welcome back, {matched_user['username']}!")
-                    st.rerun()
-                else:
-                    st.error("Invalid email or password.")
-
-# map page
-elif st.session_state["page"] == "map" and st.session_state["logged_in"]:
-    st.header("Hangout Map")
-
-    geolocator = Nominatim(user_agent="my_app")
-
-    place = st.text_input("Enter a location", key="map_place")
-
-    if place:
-        geo_location = geolocator.geocode(place)
-        marker_name = st.text_input("Enter a saved marker name", key="map_marker_name")
-
-        if geo_location:
-            m = folium.Map(location=[geo_location.latitude, geo_location.longitude], zoom_start=13)
-
+    # saved locations
+    for loc in saved_locations:
+        if isinstance(loc, dict) and "lat" in loc and "lon" in loc:
             folium.Marker(
-                [geo_location.latitude, geo_location.longitude],
-                popup=place,
-                tooltip="Search Location"
+                [loc["lat"], loc["lon"]],
+                popup=loc.get("name", "Saved Location"),
+                tooltip=loc.get("name", "Saved Location"),
+                icon=folium.Icon(color="red")
             ).add_to(m)
 
-            for loc in saved_locations:
-                if "lat" in loc and "lon" in loc:
-                    folium.Marker(
-                    [loc["lat"], loc["lon"]],
-                    popup=loc["name"],
-                    tooltip=loc["name"]
-                    ).add_to(m)
+    # deal markers
+    for deal in deals:
+        popup_html = f"""
+        <div style="width:210px; font-family:Arial, sans-serif;">
+            <h4 style="margin-bottom:6px;">{deal['name']}</h4>
+            <p style="margin:0;"><b>Deal:</b> {deal['deal']}</p>
+        </div>
+        """
 
-            st_folium(m, width=700, height=500)
+        folium.Marker(
+            [deal["lat"], deal["lon"]],
+            popup=folium.Popup(popup_html, max_width=240),
+            tooltip=deal["name"],
+            icon=folium.Icon(color="green")
+        ).add_to(m)
 
-            if st.button("Save Location"):
-                new_location = {
-                    "name": marker_name if marker_name else place,
-                    "lat": geo_location.latitude,
-                    "lon": geo_location.longitude
-                }
+    st_folium(m, width=900, height=520)
 
-                saved_locations.append(new_location)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-                with open(json_location, "w") as f:
-                    json.dump(saved_locations, f, indent=4)
+# -----------------------------
+# DEALS PANEL
+# -----------------------------
+with col2:
+    st.markdown("<div class='panel'>", unsafe_allow_html=True)
+    st.subheader("Local Deals")
 
-                st.success("Location saved!")
-                st.rerun()
+    # This is the key fix
+    try:
+        deals_box = st.container(height=380)
+    except TypeError:
+        deals_box = st.container()
 
-        else:
-            st.error("Location not found")
+    with deals_box:
+        for deal in deals:
+            st.markdown(
+                f"""
+                <div class='deal-card' style='background-color:{deal["color"]};'>
+                    <div style='font-weight:700; font-size:15px; margin-bottom:4px;'>{deal["name"]}</div>
+                    <div style='font-size:14px; color:#4F4A4A;'>{deal["deal"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-    if saved_locations:
-        st.subheader("Saved Locations")
-        st.dataframe(saved_locations)
-    else:
-        st.write("No saved locations yet.")
+    st.markdown("</div>", unsafe_allow_html=True)
